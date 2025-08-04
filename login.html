@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/login.css">
+    <link rel="icon" type="image/png" href="andritzlogo2.png">
+    <title>Sistema de Login - Estoque</title>
+</head>
+<body>
+    <div class="container">
+        <!-- Tela de Login -->
+        <div id="loginForm" class="form-container">
+            <div class="logo">
+                <img src="/andritzlogo.png" style="width: 70%">
+                <p>Sistema de Estoque</p>
+            </div>
+            
+            <div id="loginAlert"></div>
+            
+            <form id="loginFormElement">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">Senha</label>
+                    <input type="password" id="loginPassword" name="password" required>
+                </div>
+                
+                <button type="submit" class="btn">Entrar</button>
+            </form>
+            
+            <div class="switch-form">
+                <p>Não tem uma conta? <button type="button" onclick="showRegister()">Cadastre-se</button></p>
+            </div>
+        </div>
+
+        <!-- Tela de Cadastro -->
+        <div id="registerForm" class="form-container" style="display: none;">
+            <div class="logo">
+                <img src="/andritzlogo.png" style="width: 70%">
+                <p>Criar Conta</p>
+            </div>
+            
+            <div id="registerAlert"></div>
+            
+            <form id="registerFormElement">
+                <div class="form-group">
+                    <label for="registerName">Nome Completo</label>
+                    <input type="text" id="registerName" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerPassword">Senha</label>
+                    <input type="password" id="registerPassword" name="password" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmPassword">Confirmar Senha</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required minlength="6">
+                </div>
+                
+                <div class="admin-toggle">
+                    <input type="checkbox" id="adminToggle" onchange="toggleAdminCode()">
+                    <label for="adminToggle">Cadastrar como Administrador</label>
+                </div>
+                
+                <div class="form-group admin-code" id="adminCodeGroup">
+                    <label for="adminCode">Código de Administrador</label>
+                    <input type="text" id="adminCode" name="adminCode" placeholder="Digite o código de admin">
+                </div>
+                
+                <button type="submit" class="btn">Criar Conta</button>
+            </form>
+            
+            <div class="switch-form">
+                <p>Já tem uma conta? <button type="button" onclick="showLogin()">Fazer Login</button></p>
+            </div>
+        </div>
+
+        <!-- Tela de Loading -->
+        <div id="loadingScreen" class="loading">
+            <div class="spinner"></div>
+            <p>Processando...</p>
+        </div>
+
+        <!-- Tela de Sucesso -->
+        <div id="userInfo" class="user-info">
+            <h2>Bem-vindo(a)!</h2>
+            <div id="userDetails"></div>
+            <button class="btn btn-continue" onclick="redirectToSystem()">Continuar para o Sistema</button>
+            <button class="btn btn-logout" onclick="logout()">Sair</button>
+        </div>
+    </div>
+
+    <script src="login.js"></script>
+</body>
+</html>

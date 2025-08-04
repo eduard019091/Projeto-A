@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="main.css">
+    <link rel="icon" type="image/png" href="andritzlogo2.png">
+    <title>Sistema de Requisições</title>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <img src="./andritzlogo.png" alt="Andritz Logo" class="logo">
+                <a href="/login.html"><button class="btn btn-logout" onclick="logout()">Sair</button></a>
+            </div>
+            <h1>Sistema de Requisições</h1>
+            <div class="nav-buttons">
+                <button class="nav-btn active" onclick="showSection('novoPacote')">Novo Pacote</button>
+                <button class="nav-btn" onclick="showSection('meusPacotes')">Meus Pacotes</button>
+                <button class="nav-btn" onclick="showSection('novaRequisicao')">Nova Requisição</button>
+                <button class="nav-btn" onclick="showSection('minhasRequisicoes')">Minhas Requisições</button>
+                <button class="nav-btn admin-only" onclick="showSection('aprovarRequisicoes')">Aprovar Requisições</button>
+                <button class="nav-btn" id="btnVoltarEstoque" onclick="window.location.href='index.html'">Voltar ao Estoque</button>
+            </div>
+        </div>
+
+        <!-- Seção Novo Pacote -->
+        <div id="novoPacote" class="content section active">
+            <h2>Criar Novo Pacote de Requisição</h2>
+            <form id="pacoteForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="centroCusto">Centro de Custo:</label>
+                        <input type="text" id="centroCusto" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="projeto">Projeto:</label>
+                        <input type="text" id="projeto" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="justificativa">Justificativa:</label>
+                    <textarea id="justificativa" rows="3" required></textarea>
+                </div>
+
+                <div id="itensPacote">
+                    <h3>Itens do Pacote</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="itemSelect">Selecionar Item:</label>
+                            <select id="itemSelect">
+                                <option value="">Selecione um item...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemQuantidade">Quantidade:</label>
+                            <input type="number" id="itemQuantidade" min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="button" class="btn" onclick="adicionarItemAoFormulario()">Adicionar Item</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="tabelaItensPacote">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Quantidade</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn">Criar Pacote</button>
+            </form>
+        </div>
+
+        <!-- Seção Meus Pacotes -->
+        <div id="meusPacotes" class="content section">
+            <h2>Meus Pacotes de Requisição</h2>
+            <div class="filter-section">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="statusFiltro">Status:</label>
+                        <select id="statusFiltro" onchange="filtrarPacotes()">
+                            <option value="todos">Todos</option>
+                            <option value="pendente">Pendentes</option>
+                            <option value="aprovado">Aprovados</option>
+                            <option value="rejeitado">Rejeitados</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="listaPacotes" class="pacotes-container"></div>
+        </div>
+    </div>
+    <!-- Container já existe acima, removendo duplicação -->
+
+        <!-- Indicador de loading -->
+        <div id="loading" class="loading" style="display: none;">
+            <p>Carregando dados do usuário...</p>
+        </div>
+
+        <!-- Mensagem de acesso negado -->
+        <div id="accessDenied" class="access-denied" style="display: none;">
+            <h2>Acesso Negado</h2>
+            <p>Você não tem permissão para acessar esta página.</p>
+            <button class="btn" onclick="window.location.href='login.html'">Voltar ao Login</button>
+        </div>
+
+        <!-- Nova Requisição -->
+        <div id="novaRequisicao" class="content section">
+            <h2>Nova Requisição</h2>
+            <form id="requisicaoForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="itemRequisicao">Item:</label>
+                        <select id="itemRequisicao" required>
+                            <option value="">Selecione um item...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="quantidadeRequisicao">Quantidade:</label>
+                        <input type="number" id="quantidadeRequisicao" required min="1">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="centroCusto">Centro de Custo:</label>
+                        <input type="text" id="centroCusto" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="projeto">Projeto/WBS:</label>
+                        <input type="text" id="projeto" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="justificativa">Justificativa:</label>
+                    <textarea id="justificativa" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn">Enviar Requisição</button>
+            </form>
+        </div>
+
+        <!-- Minhas Requisições -->
+        <div id="minhasRequisicoes" class="content section">
+            <h2>Minhas Requisições</h2>
+            <div class="table-container">
+                <table id="tabelaMinhasRequisicoes">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Item</th>
+                            <th>Quantidade</th>
+                            <th>Centro de Custo</th>
+                            <th>Status</th>
+                            <th>Observações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Aprovar Requisições (Admin) -->
+        <div id="aprovarRequisicoes" class="content section">
+            <h2>Aprovar Requisições</h2>
+            <div class="table-container">
+                <table id="tabelaAprovarRequisicoes">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Solicitante</th>
+                            <th>Item</th>
+                            <th>Quantidade</th>
+                            <th>Centro de Custo</th>
+                            <th>Projeto</th>
+                            <th>Justificativa</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Função para verificar se o usuário é admin
+        function isUserAdmin() {
+            const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+            return userData.userType === 'admin';
+        }
+
+        // Função para configurar visibilidade dos elementos baseado no tipo de usuário
+        function configureUserInterface() {
+            const isAdmin = isUserAdmin();
+            // Mostrar/ocultar botão "Voltar ao Estoque" para usuários não-admin
+            const btnVoltar = document.getElementById('btnVoltarEstoque');
+            if (btnVoltar) {
+                btnVoltar.style.display = isAdmin ? 'block' : 'none';
+                btnVoltar.onclick = function() {
+                    window.location.href = 'index.html';
+                };
+            }
+            
+            // Mostrar/ocultar seção de aprovar requisições baseado no tipo de usuário
+            const adminButtons = document.querySelectorAll('.admin-only');
+            adminButtons.forEach(button => {
+                button.style.display = isAdmin ? 'block' : 'none';
+            });
+        }
+
+        // Função para carregar dados do usuário logado
+        function carregarDadosUsuario() {
+            const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+            
+            if (!userData.id) {
+                document.getElementById('accessDenied').style.display = 'block';
+                document.querySelector('.container').style.display = 'none';
+                return false;
+            }
+            
+            // Adicionar indicador do tipo de usuário na interface
+            const userTypeIndicator = document.createElement('div');
+            userTypeIndicator.className = 'user-type-indicator';
+            userTypeIndicator.innerHTML = `
+                <span class="user-info">
+                    Logado como: <strong>${userData.name}</strong> 
+                    ${userData.userType === 'admin' ? '<span class="admin-badge">ADMIN</span>' : ''}
+                </span>
+            `;
+            
+            // Adicionar ao header
+            const header = document.querySelector('.header');
+            if (header) {
+                header.appendChild(userTypeIndicator);
+            }
+            
+            return true;
+        }
+
+        // Função para logout
+        function logout() {
+            localStorage.removeItem('userData');
+            localStorage.removeItem('userToken');
+            window.location.href = 'login.html';
+        }
+
+        // Adicionar botão de logout na interface
+        function adicionarBotaoLogout() {
+            const logoutButton = document.createElement('button');
+            logoutButton.className = 'btn-logout';
+            logoutButton.textContent = 'Sair';
+            logoutButton.onclick = logout;
+            
+            document.body.appendChild(logoutButton);
+        }
+
+        // Função para mostrar seções
+        function showSection(sectionId) {
+            // Ocultar todas as seções
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remover classe active de todos os botões
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Mostrar seção selecionada
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Adicionar classe active no botão correspondente
+            event.target.classList.add('active');
+        }
+
+        // Função para inicializar o sistema
+        function inicializarSistema() {
+            // Mostrar loading
+            document.getElementById('loading').style.display = 'block';
+            // Verificar se o usuário está logado e carregar dados
+            if (!carregarDadosUsuario()) {
+                document.getElementById('loading').style.display = 'none';
+                return;
+            }
+            // Configurar interface baseada no tipo de usuário
+            configureUserInterface();
+            // Adicionar botão de logout
+            adicionarBotaoLogout();
+            // Ocultar loading
+            document.getElementById('loading').style.display = 'none';
+            // Proteger acesso ao estoque - apenas verificar se estamos na página index.html
+            let userData = {};
+            try {
+                userData = JSON.parse(sessionStorage.getItem('currentUser')) || {};
+            } catch {}
+            if (!userData.userType) {
+                try {
+                    userData = JSON.parse(localStorage.getItem('userData')) || {};
+                } catch {}
+            }
+            if (window.location.pathname.endsWith('index.html') && userData.userType !== 'admin') {
+                alert('Acesso negado! Apenas administradores podem acessar o sistema de estoque.');
+                window.location.href = 'requisi.html';
+                return;
+            }
+            // Aqui você pode adicionar outras inicializações como:
+            // - Carregar itens para o select
+            // - Carregar requisições do usuário
+            // - Carregar requisições pendentes (se admin)
+        }
+
+        // Inicializar quando a página carregar
+        document.addEventListener('DOMContentLoaded', inicializarSistema);
+    </script>
+
+    <script src="requisi.js"></script>
+</body>
+</html>
