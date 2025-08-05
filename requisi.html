@@ -18,9 +18,8 @@
             <div class="nav-buttons">
                 <button class="nav-btn active" onclick="showSection('novoPacote')">Novo Pacote</button>
                 <button class="nav-btn" onclick="showSection('meusPacotes')">Meus Pacotes</button>
-                <button class="nav-btn" onclick="showSection('novaRequisicao')">Nova Requisição</button>
-                <button class="nav-btn" onclick="showSection('minhasRequisicoes')">Minhas Requisições</button>
-                <button class="nav-btn admin-only" onclick="showSection('aprovarRequisicoes')">Aprovar Requisições</button>
+                <button class="nav-btn admin-only" onclick="showSection('aprovarRequisicoes')">Aprovar Pacotes</button>
+                <button class="nav-btn admin-only" onclick="showSection('configuracoes')">Configurações</button>
                 <button class="nav-btn" id="btnVoltarEstoque" onclick="window.location.href='index.html'">Voltar ao Estoque</button>
             </div>
         </div>
@@ -32,11 +31,15 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="centroCusto">Centro de Custo:</label>
-                        <input type="text" id="centroCusto" required>
+                        <select id="centroCusto" required>
+                            <option value="">Selecione um centro de custo...</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="projeto">Projeto:</label>
-                        <input type="text" id="projeto" required>
+                        <select id="projeto" required>
+                            <option value="">Selecione um projeto...</option>
+                        </select>
                     </div>
                 </div>
 
@@ -88,13 +91,26 @@
             <div class="filter-section">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="statusFiltro">Status:</label>
-                        <select id="statusFiltro" onchange="filtrarPacotes()">
-                            <option value="todos">Todos</option>
+                        <label for="filtroStatusMeusPacotes">Status:</label>
+                        <select id="filtroStatusMeusPacotes" onchange="filtrarMeusPacotes()">
+                            <option value="">Todos</option>
                             <option value="pendente">Pendentes</option>
+                            <option value="parcialmente aprovado">Parcialmente Aprovados</option>
                             <option value="aprovado">Aprovados</option>
                             <option value="rejeitado">Rejeitados</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filtroDataMeusPacotes">Data:</label>
+                        <input type="date" id="filtroDataMeusPacotes" onchange="filtrarMeusPacotes()">
+                    </div>
+                    <div class="form-group">
+                        <label for="pesquisaMeusPacotes">Pesquisar:</label>
+                        <input type="text" id="pesquisaMeusPacotes" placeholder="Centro de custo ou projeto..." onkeyup="filtrarMeusPacotes()">
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button class="btn" onclick="limparFiltrosMeusPacotes()">Limpar Filtros</button>
                     </div>
                 </div>
             </div>
@@ -116,71 +132,19 @@
             <button class="btn" onclick="window.location.href='login.html'">Voltar ao Login</button>
         </div>
 
-        <!-- Nova Requisição -->
-        <div id="novaRequisicao" class="content section">
-            <h2>Nova Requisição</h2>
-            <form id="requisicaoForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="itemRequisicao">Item:</label>
-                        <select id="itemRequisicao" required>
-                            <option value="">Selecione um item...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="quantidadeRequisicao">Quantidade:</label>
-                        <input type="number" id="quantidadeRequisicao" required min="1">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="centroCusto">Centro de Custo:</label>
-                        <input type="text" id="centroCusto" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="projeto">Projeto/WBS:</label>
-                        <input type="text" id="projeto" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="justificativa">Justificativa:</label>
-                    <textarea id="justificativa" rows="3"></textarea>
-                </div>
-                <button type="submit" class="btn">Enviar Requisição</button>
-            </form>
-        </div>
+        <!-- REMOVIDO: Seções obsoletas de requisições individuais -->
 
-        <!-- Minhas Requisições -->
-        <div id="minhasRequisicoes" class="content section">
-            <h2>Minhas Requisições</h2>
-            <div class="table-container">
-                <table id="tabelaMinhasRequisicoes">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Item</th>
-                            <th>Quantidade</th>
-                            <th>Centro de Custo</th>
-                            <th>Status</th>
-                            <th>Observações</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Aprovar Requisições (Admin) -->
+        <!-- Aprovar Pacotes (Admin) -->
         <div id="aprovarRequisicoes" class="content section">
-            <h2>Aprovar Requisições</h2>
+            <h2>Aprovar Pacotes de Requisição</h2>
             <div class="table-container">
                 <table id="tabelaAprovarRequisicoes">
                     <thead>
                         <tr>
                             <th>Data</th>
                             <th>Solicitante</th>
-                            <th>Item</th>
-                            <th>Quantidade</th>
+                            <th>Pacote</th>
+                            <th>Total</th>
                             <th>Centro de Custo</th>
                             <th>Projeto</th>
                             <th>Justificativa</th>
@@ -189,6 +153,87 @@
                     </thead>
                     <tbody></tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Configurações de Pacotes (Admin) -->
+        <div id="configuracoes" class="content section">
+            <h2>Configurações de Pacotes</h2>
+            
+            <!-- Abas de configuração -->
+            <div class="config-tabs">
+                <button class="config-tab active" onclick="showConfigTab('projetos')">Projetos</button>
+                <button class="config-tab" onclick="showConfigTab('centros-custo')">Centros de Custo</button>
+            </div>
+
+            <!-- Seção de Projetos -->
+            <div id="config-projetos" class="config-section active">
+                <h3>Gerenciar Projetos</h3>
+                <form id="projetoForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="projetoNome">Nome do Projeto:</label>
+                            <input type="text" id="projetoNome" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="projetoDescricao">Descrição:</label>
+                            <input type="text" id="projetoDescricao">
+                        </div>
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="submit" class="btn">Adicionar Projeto</button>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="table-container">
+                    <table id="tabelaProjetos">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Descrição</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Seção de Centros de Custo -->
+            <div id="config-centros-custo" class="config-section">
+                <h3>Gerenciar Centros de Custo</h3>
+                <form id="centroCustoForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="centroCustoNome">Nome do Centro de Custo:</label>
+                            <input type="text" id="centroCustoNome" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="centroCustoDescricao">Descrição:</label>
+                            <input type="text" id="centroCustoDescricao">
+                        </div>
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="submit" class="btn">Adicionar Centro de Custo</button>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="table-container">
+                    <table id="tabelaCentrosCusto">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Descrição</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

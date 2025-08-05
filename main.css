@@ -815,3 +815,146 @@ tr:hover {
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+/* Estilos para configurações */
+.config-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 8px;
+}
+
+.config-tab {
+    background: #f8fafc;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: 500;
+    color: #6b7280;
+    transition: all 0.2s ease;
+}
+
+.config-tab:hover {
+    background: #f1f5f9;
+    color: #374151;
+}
+
+.config-tab.active {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+.config-section {
+    display: none;
+}
+
+.config-section.active {
+    display: block;
+}
+
+.config-section h3 {
+    color: #1f2937;
+    margin-bottom: 20px;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+/* Estilos para relatórios detalhados */
+.relatorio-detalhado {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.relatorio-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.relatorio-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.relatorio-info-item {
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+.relatorio-info-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.relatorio-info-value {
+    font-size: 1rem;
+    color: #1f2937;
+    font-weight: 600;
+}
+
+/* Estilos para aprovação com quantidade personalizada */
+.quantidade-aprovacao {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.quantidade-aprovacao input {
+    width: 80px;
+    text-align: center;
+}
+
+.quantidade-aprovacao span {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+/* Estilos para filtros de usuário */
+.filtro-usuario {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+.filtro-usuario select {
+    min-width: 200px;
+}
+
+/* Estilos para status de configurações */
+.status-ativo {
+    background: #dcfce7;
+    color: #166534;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-inativo {
+    background: #fef2f2;
+    color: #dc2626;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
