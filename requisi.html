@@ -121,12 +121,12 @@
     <!-- Container já existe acima, removendo duplicação -->
 
         <!-- Indicador de loading -->
-        <div id="loading" class="loading" style="display: none;">
+        <div id="loading" class="loading hidden">
             <p>Carregando dados do usuário...</p>
         </div>
 
         <!-- Mensagem de acesso negado -->
-        <div id="accessDenied" class="access-denied" style="display: none;">
+        <div id="accessDenied" class="access-denied hidden">
             <h2>Acesso Negado</h2>
             <p>Você não tem permissão para acessar esta página.</p>
             <button class="btn" onclick="window.location.href='login.html'">Voltar ao Login</button>
@@ -251,7 +251,11 @@
             // Mostrar/ocultar botão "Voltar ao Estoque" para usuários não-admin
             const btnVoltar = document.getElementById('btnVoltarEstoque');
             if (btnVoltar) {
-                btnVoltar.style.display = isAdmin ? 'block' : 'none';
+                if (isAdmin) {
+                    btnVoltar.classList.remove('hidden');
+                } else {
+                    btnVoltar.classList.add('hidden');
+                }
                 btnVoltar.onclick = function() {
                     window.location.href = 'index.html';
                 };
@@ -260,7 +264,11 @@
             // Mostrar/ocultar seção de aprovar requisições baseado no tipo de usuário
             const adminButtons = document.querySelectorAll('.admin-only');
             adminButtons.forEach(button => {
-                button.style.display = isAdmin ? 'block' : 'none';
+                if (isAdmin) {
+                    button.classList.remove('hidden');
+                } else {
+                    button.classList.add('hidden');
+                }
             });
         }
 
@@ -269,8 +277,8 @@
             const userData = JSON.parse(localStorage.getItem('userData') || '{}');
             
             if (!userData.id) {
-                document.getElementById('accessDenied').style.display = 'block';
-                document.querySelector('.container').style.display = 'none';
+                document.getElementById('accessDenied').classList.remove('hidden');
+                document.querySelector('.container').classList.add('hidden');
                 return false;
             }
             
@@ -332,10 +340,10 @@
         // Função para inicializar o sistema
         function inicializarSistema() {
             // Mostrar loading
-            document.getElementById('loading').style.display = 'block';
+            document.getElementById('loading').classList.remove('hidden');
             // Verificar se o usuário está logado e carregar dados
             if (!carregarDadosUsuario()) {
-                document.getElementById('loading').style.display = 'none';
+                document.getElementById('loading').classList.add('hidden');
                 return;
             }
             // Configurar interface baseada no tipo de usuário
@@ -343,7 +351,7 @@
             // Adicionar botão de logout
             adicionarBotaoLogout();
             // Ocultar loading
-            document.getElementById('loading').style.display = 'none';
+            document.getElementById('loading').classList.add('hidden');
             // Proteger acesso ao estoque - apenas verificar se estamos na página index.html
             let userData = {};
             try {

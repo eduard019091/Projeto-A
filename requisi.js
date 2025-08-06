@@ -16,13 +16,21 @@ function configureUserInterface() {
     
     // Mostrar/ocultar elementos admin
     document.querySelectorAll('.admin-only').forEach(el => {
-        el.style.display = isAdmin ? 'block' : 'none';
+        if (isAdmin) {
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
     });
 
     // Configurar o botão de voltar ao estoque
     const btnVoltar = document.getElementById('btnVoltarEstoque');
     if (btnVoltar) {
-        btnVoltar.style.display = isAdmin ? 'block' : 'none';
+        if (isAdmin) {
+        btnVoltar.classList.remove('hidden');
+    } else {
+        btnVoltar.classList.add('hidden');
+    }
         btnVoltar.onclick = function() {
             window.location.href = 'index.html';
         };
@@ -285,13 +293,6 @@ function carregarMeusPacotes() {
             pacotes.forEach(pacote => {
                 const pacoteDiv = document.createElement('div');
                 pacoteDiv.className = 'pacote-card';
-                pacoteDiv.style.cssText = `
-                    border: 1px solid #ddd;
-                    border-radius: 8px;
-                    padding: 15px;
-                    margin-bottom: 15px;
-                    background: white;
-                `;
                 
                 const statusClass = pacote.status === 'aprovado' ? 'status-aprovado' :
                                pacote.status === 'rejeitado' ? 'status-rejeitado' :
@@ -338,29 +339,10 @@ function verItensPacote(pacoteId) {
         .then(response => response.json())
         .then(itens => {
             const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.5);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 1000;
-            `;
+            modal.className = 'modal-overlay';
             
             const modalContent = document.createElement('div');
-            modalContent.style.cssText = `
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                max-width: 600px;
-                max-height: 80vh;
-                overflow-y: auto;
-            `;
+            modalContent.className = 'modal-content';
             
             let itensHtml = `
                 <h3>Itens do Pacote</h3>
@@ -460,29 +442,10 @@ function expandirPacote(pacoteId) {
         .then(itens => {
             // Criar modal para mostrar itens do pacote
             const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.5);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 1000;
-            `;
+            modal.className = 'modal-overlay';
             
             const modalContent = document.createElement('div');
-            modalContent.style.cssText = `
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                max-width: 800px;
-                max-height: 80vh;
-                overflow-y: auto;
-            `;
+            modalContent.className = 'modal-content-large';
             
             let itensHtml = `
                 <h3>Itens do Pacote</h3>
@@ -747,22 +710,9 @@ function adicionarBotaoLogout() {
     }
     
     const logoutButton = document.createElement('button');
-    logoutButton.className = 'btn btn-logout';
+    logoutButton.className = 'btn-logout-dynamic';
     logoutButton.textContent = 'Sair';
     logoutButton.onclick = logout;
-    logoutButton.style.cssText = `
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: #dc3545;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-        z-index: 1000;
-    `;
     
     document.body.appendChild(logoutButton);
 }
@@ -1126,11 +1076,10 @@ async function gerarRelatorioPacote(pacoteId) {
         
         // Criar modal com relatório detalhado
         const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.style.display = 'block';
+        modal.className = 'modal-overlay';
         
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+            <div class="modal-content-large">
                 <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
                 <h3>Relatório Detalhado - Pacote #${pacote.id}</h3>
                 
@@ -1229,11 +1178,10 @@ async function editarPacote(pacoteId) {
         
         // Criar modal para editar quantidades
         const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.style.display = 'block';
+        modal.className = 'modal-overlay';
         
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+            <div class="modal-content-large">
                 <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
                 <h3>Editar Quantidades - Pacote #${pacote.id}</h3>
                 
@@ -1402,7 +1350,7 @@ async function exportarRelatorioPacote(pacoteId) {
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
-        a.style.display = 'none';
+        a.classList.add('hidden');
         
         document.body.appendChild(a);
         a.click();
@@ -1458,7 +1406,11 @@ function filtrarMeusPacotes() {
             mostrar = false;
         }
         
-        pacote.style.display = mostrar ? '' : 'none';
+                    if (mostrar) {
+                pacote.classList.remove('hidden');
+            } else {
+                pacote.classList.add('hidden');
+            }
     });
 }
 
@@ -1471,6 +1423,6 @@ function limparFiltrosMeusPacotes() {
     // Mostrar todos os pacotes
     const pacotes = document.querySelectorAll('.pacote-card');
     pacotes.forEach(pacote => {
-        pacote.style.display = '';
+        pacote.classList.remove('hidden');
     });
 }
