@@ -236,7 +236,7 @@ function filtrarEstoque() {
                 <button class="btn btn-danger" onclick="removerItem(${item.id});event.stopPropagation();">Remover</button>
             </td>
         `;
-        row.style.cursor = 'pointer';
+        row.classList.add('cursor-pointer');
         row.addEventListener('click', function(e) {
             if (e.target.tagName === 'BUTTON') return;
             abrirModalEditarItem(item.id);
@@ -249,11 +249,11 @@ function filtrarEstoque() {
 // Modal para adicionar estoque
 function abrirModalEstoque(itemId) {
     document.getElementById('itemIdModal').value = itemId;
-    document.getElementById('modalEstoque').style.display = 'block';
+    document.getElementById('modalEstoque').classList.remove('hidden');
 }
 
 function fecharModal() {
-    document.getElementById('modalEstoque').style.display = 'none';
+    document.getElementById('modalEstoque').classList.add('hidden');
     document.getElementById('adicionarEstoqueForm').reset();
 }
 
@@ -725,10 +725,10 @@ function abrirModalEditarItem(itemId) {
     document.getElementById('editarMinimo').value = item.minimo || 0;
     document.getElementById('editarIdeal').value = item.ideal || 0;
     document.getElementById('editarInfos').value = item.infos || '';
-    document.getElementById('modalEditarItem').style.display = 'block';
+    document.getElementById('modalEditarItem').classList.remove('hidden');
 }
 function fecharModalEditarItem() {
-    document.getElementById('modalEditarItem').style.display = 'none';
+    document.getElementById('modalEditarItem').classList.add('hidden');
     document.getElementById('editarItemForm').reset();
 }
 // Salvar edição do item
@@ -944,7 +944,7 @@ window.exportarBancoDados = async function() {
         a.href = url;
         const dataHora = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         a.download = `backup-estoque-${dataHora}.json`;
-        a.style.display = 'none';
+        a.classList.add('hidden');
         
         document.body.appendChild(a);
         a.click();
@@ -1109,7 +1109,7 @@ window.addEventListener('online', async function() {
             
             // Ocultar após alguns segundos
             setTimeout(() => {
-                statusBar.style.display = 'none';
+                statusBar.classList.add('hidden');
             }, 3000);
         }
     }
@@ -1119,8 +1119,8 @@ window.addEventListener('offline', function() {
     console.log('Conexão de rede perdida');
     const statusBar = document.getElementById('connectionStatus');
     if (statusBar) {
-        statusBar.style.display = 'block';
-        statusBar.className = 'disconnected';
+        statusBar.classList.remove('hidden');
+        statusBar.className = 'status-bar status-bar-error disconnected';
         statusBar.textContent = 'Desconectado - Verifique sua conexão';
     }
 });
@@ -1134,11 +1134,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     statusBar.id = 'connectionStatus';
     statusBar.className = 'connecting';
     statusBar.textContent = 'Conectando...';
-    statusBar.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; padding: 5px; text-align: center; z-index: 9999; color: white; font-weight: bold; display: none;';
+    statusBar.className = 'status-bar status-bar-warning connecting hidden';
     document.body.appendChild(statusBar);
     
     try {
-        statusBar.style.display = 'block';
+        statusBar.classList.remove('hidden');
         await carregarDados();
         await atualizarControleEstoque();
         await atualizarSelectRetirada();
@@ -1146,16 +1146,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         await gerarRelatorioMovimentacao();
         
         // Atualizar status de conexão
-        statusBar.className = 'connected';
+        statusBar.className = 'status-bar status-bar-success connected';
         statusBar.textContent = 'Conectado';
         
         // Ocultar após alguns segundos
         setTimeout(() => {
-            statusBar.style.display = 'none';
+            statusBar.classList.add('hidden');
         }, 2000);
     } catch (error) {
         console.error('Erro na inicialização:', error);
-        statusBar.className = 'disconnected';
+        statusBar.className = 'status-bar status-bar-error disconnected';
         statusBar.textContent = 'Falha na conexão - Tentando reconectar...';
         
         // Tentar reconectar automaticamente

@@ -39,7 +39,7 @@
         <div id="cadastro" class="content section active">
             <h2>Cadastro de Itens</h2>
             <form id="itemForm">
-                <input type="file" id="importarEPI" accept=".csv,.xlsx,.xls" style="display:none" onchange="importarPlanilhaEPI(event)">
+                <input type="file" id="importarEPI" accept=".csv,.xlsx,.xls" class="file-input-hidden" onchange="importarPlanilhaEPI(event)">
                 <label for="importarEPI" class="btn">Importar Relatório de EPIs</label>
                 <div class="form-row">
                     <div class="form-group">
@@ -254,7 +254,7 @@
                     <h3>Importar Dados</h3>
                     <p>Selecione um arquivo de banco de dados exportado de outro computador para importar aqui.</p>
                     <p><strong>Atenção:</strong> Esta ação substituirá todos os dados atuais.</p>
-                    <input type="file" id="importarBanco" accept=".json" style="display:none" onchange="importarBancoDados(event)">
+                    <input type="file" id="importarBanco" accept=".json" class="file-input-hidden" onchange="importarBancoDados(event)">
                     <label for="importarBanco" class="btn btn-warning">Selecionar Arquivo para Importar</label>
                       
                 </div>
