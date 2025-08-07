@@ -106,24 +106,50 @@ async function carregarDados() {
 
 // Navegação entre seções
 function showSection(sectionId) {
-    const sections = document.querySelectorAll('.section');
-    const buttons = document.querySelectorAll('.nav-btn');
+    const sections = document.querySelectorAll('.content-section');
+    const navLinks = document.querySelectorAll('.nav-link');
     
     sections.forEach(section => section.classList.remove('active'));
-    buttons.forEach(button => button.classList.remove('active'));
+    navLinks.forEach(link => link.classList.remove('active'));
     
-    document.getElementById(sectionId).classList.add('active');
-    event.target.classList.add('active');
+    const selectedSection = document.getElementById(sectionId);
+    if (selectedSection) {
+        selectedSection.classList.add('active');
+    }
+    
+    // Encontrar e ativar o link correspondente
+    const activeLink = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
+    if (activeLink) {
+        activeLink.classList.add('active');
+    }
     
     // Atualizar dados específicos da seção
     if (sectionId === 'estoque') {
-        atualizarControleEstoque();
+        atualizarControleEstoque().catch(error => {
+            console.error('Erro ao atualizar controle de estoque:', error);
+        });
     } else if (sectionId === 'retirada') {
-        atualizarSelectRetirada();
+        atualizarSelectRetirada().catch(error => {
+            console.error('Erro ao atualizar select de retirada:', error);
+        });
     } else if (sectionId === 'relatorio1') {
-        gerarRelatorioEstoque();
+        gerarRelatorioEstoque().catch(error => {
+            console.error('Erro ao gerar relatório de estoque:', error);
+        });
     } else if (sectionId === 'relatorio2') {
-        gerarRelatorioMovimentacao();
+        gerarRelatorioMovimentacao().catch(error => {
+            console.error('Erro ao gerar relatório de movimentação:', error);
+        });
+    } else if (sectionId === 'dashboard') {
+        loadDashboardData();
+    }
+    
+    // Fechar sidebar no mobile após navegação
+    if (window.innerWidth <= 1024) {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+            sidebar.classList.remove('show');
+        }
     }
 }
 
@@ -161,35 +187,63 @@ function limparFormulario() {
 
 // Controle de estoque
 async function atualizarControleEstoque() {
+    // Verificar se estamos na seção de estoque antes de tentar atualizar
+    const estoqueSection = document.getElementById('estoque');
+    if (!estoqueSection || !estoqueSection.classList.contains('active')) {
+        return; // Não atualizar se não estiver na seção de estoque
+    }
+    
     // Não recarregar dados aqui, apenas atualizar a exibição
     filtrarEstoque();
-    const alertas = document.getElementById('alertas');
+    
     let itensAbaixoMinimo = itens.filter(item => item.quantidade < item.minimo);
     let itensAbaixoIdeal = itens.filter(item => item.quantidade < item.ideal);
-    let alertasTexto = [];
-    itensAbaixoMinimo.forEach(item => {
-        alertasTexto.push(`${item.nome} está abaixo do mínimo (${item.quantidade}/${item.minimo})`);
-    });
-    document.getElementById('totalItens').textContent = itens.length;
-    document.getElementById('itensAbaixoMinimo').textContent = itensAbaixoMinimo.length;
-    document.getElementById('itensAbaixoIdeal').textContent = itensAbaixoIdeal.length;
-    if (alertasTexto.length > 0) {
-        alertas.innerHTML = `
-            <div class="alert alert-warning">
-                <strong>Alertas de Estoque:</strong><br>
-                ${alertasTexto.join('<br>')}
-            </div>
-        `;
-    } else {
-        alertas.innerHTML = '';
+    
+    // Atualizar estatísticas
+    const totalItensElement = document.getElementById('totalItens');
+    const itensAbaixoMinimoElement = document.getElementById('itensAbaixoMinimo');
+    const itensAbaixoIdealElement = document.getElementById('itensAbaixoIdeal');
+    
+    if (totalItensElement) totalItensElement.textContent = itens.length;
+    if (itensAbaixoMinimoElement) itensAbaixoMinimoElement.textContent = itensAbaixoMinimo.length;
+    if (itensAbaixoIdealElement) itensAbaixoIdealElement.textContent = itensAbaixoIdeal.length;
+    
+    // Atualizar alertas se existir o elemento
+    const alertas = document.getElementById('alertas');
+    if (alertas) {
+        let alertasTexto = [];
+        itensAbaixoMinimo.forEach(item => {
+            alertasTexto.push(`${item.nome} está abaixo do mínimo (${item.quantidade}/${item.minimo})`);
+        });
+        
+        if (alertasTexto.length > 0) {
+            alertas.innerHTML = `
+                <div class="alert alert-warning">
+                    <strong>Alertas de Estoque:</strong><br>
+                    ${alertasTexto.join('<br>')}
+                </div>
+            `;
+        } else {
+            alertas.innerHTML = '';
+        }
     }
 }
 
 // Filtro e pesquisa no controle de estoque
 function filtrarEstoque() {
-    const pesquisa = document.getElementById('pesquisaEstoque').value.trim().toLowerCase();
-    const statusFiltro = document.getElementById('filtroStatus').value;
-    const ordenacao = document.getElementById('ordenacao').value;
+    const pesquisaElement = document.getElementById('pesquisaEstoque');
+    const statusFiltroElement = document.getElementById('filtroStatus');
+    const ordenacaoElement = document.getElementById('ordenacao');
+    
+    // Verificar se os elementos existem antes de acessar suas propriedades
+    if (!pesquisaElement || !statusFiltroElement) {
+        console.warn('Elementos de filtro não encontrados, pulando filtragem');
+        return;
+    }
+    
+    const pesquisa = pesquisaElement.value.trim().toLowerCase();
+    const statusFiltro = statusFiltroElement.value;
+    const ordenacao = ordenacaoElement ? ordenacaoElement.value : 'nome'; // Valor padrão se não existir
     let itensFiltrados = itens.filter(item => {
         let nomeMatch = item.nome && item.nome.toLowerCase().includes(pesquisa);
         let wbsMatch = item.serie && item.serie.toLowerCase().includes(pesquisa);
@@ -232,11 +286,18 @@ function filtrarEstoque() {
             <td>${item.ideal}</td>
             <td><span class="${statusClass}">${status}</span></td>
             <td>
-                <button class="btn" onclick="abrirModalEstoque(${item.id});event.stopPropagation();">+ Estoque</button>
-                <button class="btn btn-danger" onclick="removerItem(${item.id});event.stopPropagation();">Remover</button>
+                <button class="btn btn-sm btn-primary" onclick="abrirModalEstoque(${item.id});event.stopPropagation();">
+                    <i class="fas fa-plus"></i> Adicionar
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="abrirModalEditarItem(${item.id});event.stopPropagation();">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="removerItem(${item.id});event.stopPropagation();">
+                    <i class="fas fa-trash"></i> Remover
+                </button>
             </td>
         `;
-        row.style.cursor = 'pointer';
+        row.classList.add('cursor-pointer');
         row.addEventListener('click', function(e) {
             if (e.target.tagName === 'BUTTON') return;
             abrirModalEditarItem(item.id);
@@ -249,11 +310,15 @@ function filtrarEstoque() {
 // Modal para adicionar estoque
 function abrirModalEstoque(itemId) {
     document.getElementById('itemIdModal').value = itemId;
-    document.getElementById('modalEstoque').style.display = 'block';
+    const modal = document.getElementById('modalEstoque');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
 }
 
 function fecharModal() {
-    document.getElementById('modalEstoque').style.display = 'none';
+    const modal = document.getElementById('modalEstoque');
+    modal.style.display = 'none';
+    modal.classList.remove('show');
     document.getElementById('adicionarEstoqueForm').reset();
 }
 
@@ -314,7 +379,7 @@ async function atualizarSelectRetirada() {
     const pacotesList = document.getElementById('pacotesPendentes');
     if (pacotesList) {
         try {
-            const pacotes = await apiRequest('/pacotes-requisicao/pendentes', 'GET');
+            const pacotes = await apiRequest('/pacotes/pendentes', 'GET');
             pacotesList.innerHTML = '';
             
             if (pacotes.length === 0) {
@@ -328,13 +393,7 @@ async function atualizarSelectRetirada() {
                         <p><strong>Centro de Custo:</strong> ${pacote.centroCusto}</p>
                         <p><strong>Projeto:</strong> ${pacote.projeto}</p>
                         <p><strong>Justificativa:</strong> ${pacote.justificativa}</p>
-                        <div class="itens-pacote">
-                            ${pacote.itens.map(item => `
-                                <div class="item-pacote">
-                                    <span>${item.nome} - Qtd: ${item.quantidade}</span>
-                                </div>
-                            `).join('')}
-                        </div>
+                        <p><strong>Itens:</strong> ${pacote.total_itens || 0} • <strong>Total:</strong> ${pacote.total_quantidade || 0} unidades</p>
                         <div class="acoes-pacote">
                             <button onclick="aprovarPacote(${pacote.id})" class="btn btn-success">Aprovar</button>
                             <button onclick="rejeitarPacote(${pacote.id})" class="btn btn-danger">Rejeitar</button>
@@ -350,40 +409,8 @@ async function atualizarSelectRetirada() {
     }
 }
 
-// Função para criar pacote de requisição
-async function criarPacoteRequisicao() {
-    const centroCusto = document.getElementById('centroCustoPacote').value;
-    const projeto = document.getElementById('projetoPacote').value;
-    const justificativa = document.getElementById('justificativaPacote').value;
-
-    try {
-        const response = await apiRequest('/pacotes-requisicao', 'POST', {
-            centroCusto,
-            projeto,
-            justificativa
-        });
-        
-        alert('Pacote de requisição criado com sucesso!');
-        return response.id;
-    } catch (error) {
-        alert('Erro ao criar pacote de requisição: ' + error.message);
-        return null;
-    }
-}
-
-// Função para adicionar item ao pacote
-async function adicionarItemAoPacote(pacoteId, itemId, quantidade) {
-    try {
-        await apiRequest(`/pacotes-requisicao/${pacoteId}/itens`, 'POST', {
-            itemId,
-            quantidade
-        });
-        return true;
-    } catch (error) {
-        alert('Erro ao adicionar item ao pacote: ' + error.message);
-        return false;
-    }
-}
+// REMOVIDO: Funções obsoletas de criar pacote de requisição
+// Os pacotes agora são criados através da interface de requisições
 
 document.getElementById('retiradaForm').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -392,30 +419,17 @@ document.getElementById('retiradaForm').addEventListener('submit', async functio
     const quantidade = parseInt(document.getElementById('quantidadeRetirada').value);
     const destino = document.getElementById('destinoRetirada').value;
     const observacao = document.getElementById('observacaoRetirada').value;
-    const usarPacote = document.getElementById('usarPacote').checked;
     
     try {
-        if (usarPacote) {
-            const pacoteId = await criarPacoteRequisicao();
-            if (pacoteId) {
-                const sucesso = await adicionarItemAoPacote(pacoteId, itemId, quantidade);
-                if (sucesso) {
-                    alert('Item adicionado ao pacote de requisição com sucesso!');
-                    document.getElementById('retiradaForm').reset();
-                    await atualizarSelectRetirada();
-                }
-            }
-        } else {
-            await apiRequest(`/itens/${itemId}/retirar`, 'POST', {
-                quantidade: quantidade,
-                destino: destino,
-                observacao: observacao
-            });
-            
-            alert('Retirada realizada com sucesso!');
-            document.getElementById('retiradaForm').reset();
-            await atualizarSelectRetirada();
-        }
+        await apiRequest(`/itens/${itemId}/retirar`, 'POST', {
+            quantidade: quantidade,
+            destino: destino,
+            observacao: observacao
+        });
+        
+        alert('Retirada realizada com sucesso!');
+        document.getElementById('retiradaForm').reset();
+        await atualizarSelectRetirada();
     } catch (error) {
         alert('Erro ao realizar operação: ' + error.message);
     }
@@ -439,7 +453,7 @@ async function gerarRelatorioEstoque() {
     if (itensAbaixoMinimo.length > 0) {
         html += `
             <div class="table-container">
-                <table>
+                <table class="modern-table">
                     <thead>
                         <tr>
                             <th>Nome</th>
@@ -476,7 +490,7 @@ async function gerarRelatorioEstoque() {
     if (itensAbaixoIdeal.length > 0) {
         html += `
             <div class="table-container">
-                <table>
+                <table class="modern-table">
                     <thead>
                         <tr>
                             <th>Nome</th>
@@ -518,11 +532,17 @@ async function gerarRelatorioMovimentacao() {
             <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
                 <input type="text" id="pesquisaMovimentacao" placeholder="Pesquisar por nome, destino ou data" style="padding:4px;">
                 <input type="number" id="filtroQtdMov" placeholder="Quantidade" min="1" style="width:100px;padding:4px;">
+                <select id="filtroUsuarioMov" style="padding:4px;min-width:150px;">
+                    <option value="">Todos os usuários</option>
+                </select>
                 <button class="btn" id="btnFiltrarMov">Filtrar</button>
                 <button class="btn" id="btnLimparFiltroMov">Limpar</button>
             </div>
         `;
         document.getElementById('relatorioMovimentacao').parentNode.insertBefore(filtrosDiv, document.getElementById('relatorioMovimentacao'));
+        
+        // Carregar lista de usuários
+        carregarUsuariosParaFiltro();
     }
 
     try {
@@ -532,6 +552,7 @@ async function gerarRelatorioMovimentacao() {
         // Filtros
         let pesquisa = document.getElementById('pesquisaMovimentacao').value.trim().toLowerCase();
         let qtdFiltro = document.getElementById('filtroQtdMov').value;
+        let usuarioFiltro = document.getElementById('filtroUsuarioMov').value;
 
         let movFiltradas = movimentacoes.filter(mov => {
             let nomeMatch = mov.item_nome && mov.item_nome.toLowerCase().includes(pesquisa);
@@ -541,7 +562,8 @@ async function gerarRelatorioMovimentacao() {
             let dataMatch = dataStr.includes(pesquisa);
             let pesquisaOk = !pesquisa || nomeMatch || destinoMatch || dataMatch;
             let qtdOk = !qtdFiltro || mov.quantidade == qtdFiltro;
-            return pesquisaOk && qtdOk;
+            let usuarioOk = !usuarioFiltro || (mov.usuario_id && mov.usuario_id.toString() === usuarioFiltro);
+            return pesquisaOk && qtdOk && usuarioOk;
         });
 
         // Estatísticas do período
@@ -572,7 +594,7 @@ async function gerarRelatorioMovimentacao() {
         if (movFiltradas.length > 0) {
             html += `
                 <div class="table-container">
-                    <table>
+                    <table class="modern-table">
                         <thead>
                             <tr>
                                 <th>Data</th>
@@ -768,10 +790,15 @@ function abrirModalEditarItem(itemId) {
     document.getElementById('editarMinimo').value = item.minimo || 0;
     document.getElementById('editarIdeal').value = item.ideal || 0;
     document.getElementById('editarInfos').value = item.infos || '';
-    document.getElementById('modalEditarItem').style.display = 'block';
+    const modal = document.getElementById('modalEditarItem');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
 }
+
 function fecharModalEditarItem() {
-    document.getElementById('modalEditarItem').style.display = 'none';
+    const modal = document.getElementById('modalEditarItem');
+    modal.style.display = 'none';
+    modal.classList.remove('show');
     document.getElementById('editarItemForm').reset();
 }
 // Salvar edição do item
@@ -934,7 +961,7 @@ window.exportarRelatorio = async function(tipo) {
 async function aprovarPacote(pacoteId) {
     if (confirm('Tem certeza que deseja aprovar este pacote?')) {
         try {
-            await apiRequest(`/pacotes-requisicao/${pacoteId}/aprovar`, 'POST');
+            await apiRequest(`/pacotes/${pacoteId}/aprovar`, 'POST');
             alert('Pacote aprovado com sucesso!');
             await atualizarSelectRetirada(); // Atualiza a lista de pacotes
         } catch (error) {
@@ -947,7 +974,7 @@ async function rejeitarPacote(pacoteId) {
     const motivo = prompt('Por favor, informe o motivo da rejeição:');
     if (motivo) {
         try {
-            await apiRequest(`/pacotes-requisicao/${pacoteId}/rejeitar`, 'POST', { motivo });
+            await apiRequest(`/pacotes/${pacoteId}/rejeitar`, 'POST', { motivo });
             alert('Pacote rejeitado com sucesso!');
             await atualizarSelectRetirada(); // Atualiza a lista de pacotes
         } catch (error) {
@@ -987,7 +1014,7 @@ window.exportarBancoDados = async function() {
         a.href = url;
         const dataHora = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         a.download = `backup-estoque-${dataHora}.json`;
-        a.style.display = 'none';
+        a.classList.add('hidden');
         
         document.body.appendChild(a);
         a.click();
@@ -1152,7 +1179,7 @@ window.addEventListener('online', async function() {
             
             // Ocultar após alguns segundos
             setTimeout(() => {
-                statusBar.style.display = 'none';
+                statusBar.classList.add('hidden');
             }, 3000);
         }
     }
@@ -1162,28 +1189,337 @@ window.addEventListener('offline', function() {
     console.log('Conexão de rede perdida');
     const statusBar = document.getElementById('connectionStatus');
     if (statusBar) {
-        statusBar.style.display = 'block';
-        statusBar.className = 'disconnected';
+        statusBar.classList.remove('hidden');
+        statusBar.className = 'status-bar status-bar-error disconnected';
         statusBar.textContent = 'Desconectado - Verifique sua conexão';
     }
 });
 
-// Controle de visibilidade do formulário de pacotes
-document.getElementById('usarPacote')?.addEventListener('change', function(e) {
-    const pacoteInfo = document.getElementById('pacoteInfo');
-    if (pacoteInfo) {
-        pacoteInfo.style.display = e.target.checked ? 'block' : 'none';
-        
-        // Tornar campos obrigatórios apenas quando pacote está ativo
-        const campos = ['centroCustoPacote', 'projetoPacote', 'justificativaPacote'];
-        campos.forEach(id => {
-            const campo = document.getElementById(id);
-            if (campo) {
-                campo.required = e.target.checked;
-            }
+// REMOVIDO: Controle de visibilidade do formulário de pacotes obsoleto
+
+// Funções para gerenciar a sidebar e interface moderna
+function initializeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    
+    // Toggle sidebar no mobile
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('show');
         });
     }
-});
+    
+    // Toggle sidebar no desktop
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        });
+    }
+    
+    // Gerenciar submenus
+    const submenuItems = document.querySelectorAll('.nav-item.has-submenu');
+    submenuItems.forEach(item => {
+        const link = item.querySelector('.nav-link');
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            item.classList.toggle('open');
+        });
+    });
+    
+    // Fechar sidebar no mobile ao clicar fora
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 1024) {
+            if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+                sidebar.classList.remove('show');
+            }
+        }
+    });
+}
+
+// Função para carregar dados do dashboard
+function loadDashboardData() {
+    // Carregar métricas principais
+    carregarMetricasDashboard();
+    
+    // Carregar tabela de principais itens
+    carregarTopItems();
+    
+    // Carregar atividade recente
+    carregarAtividadeRecente();
+    
+    // Carregar gráfico de status do estoque
+    carregarGraficoStatus();
+}
+
+// Carregar métricas do dashboard
+function carregarMetricasDashboard() {
+    fetch('/api/estoque')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const totalItens = data.length;
+            const itensAbaixoMinimo = data.filter(item => item.quantidade < item.minimo).length;
+            const itensIdeal = data.filter(item => item.quantidade >= item.ideal).length;
+            
+            // Atualizar cards de métricas
+            const totalItensCard = document.getElementById('totalItensCard');
+            const itensAbaixoMinimoCard = document.getElementById('itensAbaixoMinimoCard');
+            const itensIdealCard = document.getElementById('itensIdealCard');
+            
+            if (totalItensCard) totalItensCard.textContent = totalItens;
+            if (itensAbaixoMinimoCard) itensAbaixoMinimoCard.textContent = itensAbaixoMinimo;
+            if (itensIdealCard) itensIdealCard.textContent = itensIdeal;
+            
+            // Carregar retiradas de hoje
+            carregarRetiradasHoje();
+        })
+        .catch(error => {
+            console.error('Erro ao carregar métricas:', error);
+            // Definir valores padrão em caso de erro
+            const totalItensCard = document.getElementById('totalItensCard');
+            const itensAbaixoMinimoCard = document.getElementById('itensAbaixoMinimoCard');
+            const itensIdealCard = document.getElementById('itensIdealCard');
+            
+            if (totalItensCard) totalItensCard.textContent = '0';
+            if (itensAbaixoMinimoCard) itensAbaixoMinimoCard.textContent = '0';
+            if (itensIdealCard) itensIdealCard.textContent = '0';
+        });
+}
+
+// Carregar retiradas de hoje
+function carregarRetiradasHoje() {
+    const hoje = new Date().toISOString().split('T')[0];
+    fetch(`/api/movimentacoes?data=${hoje}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const retiradasHoje = data.filter(mov => mov.tipo === 'saida').length;
+            const retiradasHojeCard = document.getElementById('retiradasHojeCard');
+            if (retiradasHojeCard) {
+                retiradasHojeCard.textContent = retiradasHoje;
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar retiradas:', error);
+            const retiradasHojeCard = document.getElementById('retiradasHojeCard');
+            if (retiradasHojeCard) {
+                retiradasHojeCard.textContent = '0';
+            }
+        });
+}
+
+// Carregar principais itens
+function carregarTopItems() {
+    fetch('/api/estoque')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Ordenar por quantidade (menor primeiro para mostrar itens críticos)
+            const itensCriticos = data
+                .filter(item => item.quantidade < item.minimo)
+                .sort((a, b) => a.quantidade - b.quantidade)
+                .slice(0, 5);
+            
+            const tableContainer = document.getElementById('topItemsTable');
+            if (!tableContainer) {
+                console.error('Elemento topItemsTable não encontrado');
+                return;
+            }
+            
+            if (itensCriticos.length > 0) {
+                let html = `
+                    <table class="compact-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Atual</th>
+                                <th>Mínimo</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                itensCriticos.forEach(item => {
+                    const status = item.quantidade < item.minimo ? 'Crítico' : 'Normal';
+                    const statusClass = item.quantidade < item.minimo ? 'status-baixo' : 'status-ideal';
+                    
+                    html += `
+                        <tr>
+                            <td>${item.nome || 'Sem nome'}</td>
+                            <td>${item.quantidade || 0}</td>
+                            <td>${item.minimo || 0}</td>
+                            <td><span class="${statusClass}">${status}</span></td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table>';
+                tableContainer.innerHTML = html;
+            } else {
+                tableContainer.innerHTML = '<p style="text-align: center; color: #64748b; padding: 20px;">Nenhum item crítico encontrado</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar itens críticos:', error);
+            const tableContainer = document.getElementById('topItemsTable');
+            if (tableContainer) {
+                tableContainer.innerHTML = '<p style="text-align: center; color: #64748b; padding: 20px;">Erro ao carregar dados</p>';
+            }
+        });
+}
+
+// Carregar atividade recente
+function carregarAtividadeRecente() {
+    fetch('/api/movimentacoes?limit=5')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const activityContainer = document.getElementById('recentActivity');
+            if (!activityContainer) {
+                console.error('Elemento recentActivity não encontrado');
+                return;
+            }
+            
+            if (data.length > 0) {
+                let html = '';
+                
+                data.forEach(mov => {
+                    const icon = mov.tipo === 'saida' ? 'fas fa-sign-out-alt' : 'fas fa-plus';
+                    const bgColor = mov.tipo === 'saida' ? '#ef4444' : '#10b981';
+                    const tipo = mov.tipo === 'saida' ? 'Retirada' : 'Adição';
+                    
+                    html += `
+                        <div class="activity-item">
+                            <div class="activity-icon" style="background: ${bgColor};">
+                                <i class="${icon}"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">${tipo} de ${mov.quantidade || 0} unidades</div>
+                                <div class="activity-time">${formatarData(mov.data)}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                activityContainer.innerHTML = html;
+            } else {
+                activityContainer.innerHTML = '<p style="text-align: center; color: #64748b; padding: 20px;">Nenhuma atividade recente</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar atividade:', error);
+            const activityContainer = document.getElementById('recentActivity');
+            if (activityContainer) {
+                activityContainer.innerHTML = '<p style="text-align: center; color: #64748b; padding: 20px;">Erro ao carregar dados</p>';
+            }
+        });
+}
+
+// Carregar gráfico de status do estoque
+function carregarGraficoStatus() {
+    fetch('/api/estoque')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const chartContainer = document.getElementById('stockStatusChart');
+            if (!chartContainer) {
+                console.error('Elemento stockStatusChart não encontrado');
+                return;
+            }
+            
+            const total = data.length;
+            const critico = data.filter(item => item.quantidade < item.minimo).length;
+            const baixo = data.filter(item => item.quantidade >= item.minimo && item.quantidade < item.ideal).length;
+            const ideal = data.filter(item => item.quantidade >= item.ideal).length;
+            
+            if (total > 0) {
+                const html = `
+                    <div style="text-align: center;">
+                        <div style="display: flex; justify-content: space-around; margin-bottom: 20px;">
+                            <div>
+                                <div style="width: 60px; height: 60px; border-radius: 50%; background: #ef4444; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin: 0 auto 8px;">${critico}</div>
+                                <div style="font-size: 12px; color: #64748b;">Crítico</div>
+                            </div>
+                            <div>
+                                <div style="width: 60px; height: 60px; border-radius: 50%; background: #f59e0b; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin: 0 auto 8px;">${baixo}</div>
+                                <div style="font-size: 12px; color: #64748b;">Baixo</div>
+                            </div>
+                            <div>
+                                <div style="width: 60px; height: 60px; border-radius: 50%; background: #10b981; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin: 0 auto 8px;">${ideal}</div>
+                                <div style="font-size: 12px; color: #64748b;">Ideal</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 14px; color: #374151; font-weight: 500;">Total: ${total} itens</div>
+                    </div>
+                `;
+                chartContainer.innerHTML = html;
+            } else {
+                chartContainer.innerHTML = '<p style="text-align: center; color: #64748b;">Nenhum item cadastrado</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar gráfico:', error);
+            const chartContainer = document.getElementById('stockStatusChart');
+            if (chartContainer) {
+                chartContainer.innerHTML = '<p style="text-align: center; color: #64748b;">Erro ao carregar dados</p>';
+            }
+        });
+}
+
+// Função auxiliar para formatar data
+function formatarData(dataString) {
+    if (!dataString) {
+        return 'Data não disponível';
+    }
+    
+    try {
+        const data = new Date(dataString);
+        
+        // Verificar se a data é válida
+        if (isNaN(data.getTime())) {
+            return 'Data inválida';
+        }
+        
+        const hoje = new Date();
+        const ontem = new Date(hoje);
+        ontem.setDate(hoje.getDate() - 1);
+        
+        if (data.toDateString() === hoje.toDateString()) {
+            return 'Hoje às ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        } else if (data.toDateString() === ontem.toDateString()) {
+            return 'Ontem às ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        } else {
+            return data.toLocaleDateString('pt-BR') + ' às ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+    } catch (error) {
+        console.error('Erro ao formatar data:', error);
+        return 'Data inválida';
+    }
+}
 
 // Inicializar o sistema
 document.addEventListener('DOMContentLoaded', async function() {
@@ -1192,34 +1528,60 @@ document.addEventListener('DOMContentLoaded', async function() {
     statusBar.id = 'connectionStatus';
     statusBar.className = 'connecting';
     statusBar.textContent = 'Conectando...';
-    statusBar.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; padding: 5px; text-align: center; z-index: 9999; color: white; font-weight: bold; display: none;';
+    statusBar.className = 'status-bar status-bar-warning connecting hidden';
     document.body.appendChild(statusBar);
     
     try {
-        statusBar.style.display = 'block';
+        statusBar.classList.remove('hidden');
         await carregarDados();
-        await atualizarControleEstoque();
         await atualizarSelectRetirada();
         await gerarRelatorioEstoque();
         await gerarRelatorioMovimentacao();
+        loadDashboardData(); // Carregar dados do dashboard
+        
+        // Atualizar controle de estoque apenas se estiver na seção correta
+        if (document.getElementById('estoque') && document.getElementById('estoque').classList.contains('active')) {
+            await atualizarControleEstoque();
+        }
         
         // Atualizar status de conexão
-        statusBar.className = 'connected';
+        statusBar.className = 'status-bar status-bar-success connected';
         statusBar.textContent = 'Conectado';
         
         // Ocultar após alguns segundos
         setTimeout(() => {
-            statusBar.style.display = 'none';
+            statusBar.classList.add('hidden');
         }, 2000);
     } catch (error) {
         console.error('Erro na inicialização:', error);
-        statusBar.className = 'disconnected';
+        statusBar.className = 'status-bar status-bar-error disconnected';
         statusBar.textContent = 'Falha na conexão - Tentando reconectar...';
         
         // Tentar reconectar automaticamente
         tentarReconectar();
     }
 });
+
+// Função para carregar usuários para o filtro
+async function carregarUsuariosParaFiltro() {
+    try {
+        const usuarios = await apiRequest('/usuarios');
+        const select = document.getElementById('filtroUsuarioMov');
+        if (select) {
+            // Manter a opção "Todos os usuários"
+            select.innerHTML = '<option value="">Todos os usuários</option>';
+            
+            usuarios.forEach(usuario => {
+                const option = document.createElement('option');
+                option.value = usuario.id;
+                option.textContent = usuario.name;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Erro ao carregar usuários para filtro:', error);
+    }
+}
 
 // Fechar modal ao clicar fora dele
 window.onclick = function(event) {

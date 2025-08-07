@@ -290,6 +290,11 @@ body {
     background: #059669;
 }
 
+/* Logo width styles */
+.logo-70 {
+    width: 70%;
+}
+
 @media (max-width: 480px) {
     .container {
         margin: 10px;

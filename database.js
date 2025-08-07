@@ -105,6 +105,18 @@
 
     // Criar tabelas
     db.serialize(() => {
+        // Tabela de log de sincronização
+        db.run(`
+            CREATE TABLE IF NOT EXISTS sincronizacao_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                origem TEXT,
+                hash_dados TEXT,
+                status TEXT CHECK (status IN ('sucesso', 'erro')),
+                detalhes TEXT
+            )
+        `);
+
         // Tabela de usuários
         db.run(`
             CREATE TABLE IF NOT EXISTS usuarios (
@@ -186,11 +198,35 @@
             )
         `);
 
+        // Tabela de configurações de projetos
+        db.run(`
+            CREATE TABLE IF NOT EXISTS projetos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT NOT NULL UNIQUE,
+                descricao TEXT,
+                ativo BOOLEAN DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Tabela de configurações de centros de custo
+        db.run(`
+            CREATE TABLE IF NOT EXISTS centros_custo (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT NOT NULL UNIQUE,
+                descricao TEXT,
+                ativo BOOLEAN DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         // Índices para melhor performance
         db.run(`CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email)`);
         db.run(`CREATE INDEX IF NOT EXISTS idx_itens_nome ON itens(nome)`);
         db.run(`CREATE INDEX IF NOT EXISTS idx_movimentacoes_item_id ON movimentacoes(item_id)`);
         db.run(`CREATE INDEX IF NOT EXISTS idx_movimentacoes_data ON movimentacoes(data)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_projetos_nome ON projetos(nome)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_centros_custo_nome ON centros_custo(nome)`);
     });
 
     // Funções para usuários
@@ -445,17 +481,51 @@
     // Funções para exportar e importar dados (para sincronização entre diferentes máquinas)
     async function exportarDados() {
         try {
-            // Exportar tabela de itens
+            // Exportar tabelas principais
             const itens = await buscarItens();
-            
-            // Exportar tabela de movimentações (últimos 365 dias para não ficar muito grande)
             const movimentacoes = await buscarMovimentacoes(365);
+            const usuarios = await buscarTodosUsuarios();
+            const projetos = await buscarProjetos();
+            const centrosCusto = await buscarCentrosCusto();
+            const pacotes = await new Promise((resolve, reject) => {
+                db.all('SELECT * FROM pacotes_requisicao', (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows);
+                });
+            });
+            const requisicoes = await new Promise((resolve, reject) => {
+                db.all('SELECT * FROM requisicoes', (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows);
+                });
+            });
+
+            // Gerar hash de verificação
+            const dadosString = JSON.stringify({itens, movimentacoes, usuarios, projetos, centrosCusto, pacotes, requisicoes});
+            const hash = require('crypto').createHash('sha256').update(dadosString).digest('hex');
             
             return {
                 itens,
                 movimentacoes,
-                timestamp: new Date().toISOString(),
-                versao: '1.0'
+                usuarios,
+                projetos,
+                centrosCusto,
+                pacotes,
+                requisicoes,
+                metadata: {
+                    timestamp: new Date().toISOString(),
+                    versao: '1.1',
+                    hash: hash,
+                    total_registros: {
+                        itens: itens.length,
+                        movimentacoes: movimentacoes.length,
+                        usuarios: usuarios.length,
+                        projetos: projetos.length,
+                        centrosCusto: centrosCusto.length,
+                        pacotes: pacotes.length,
+                        requisicoes: requisicoes.length
+                    }
+                }
             };
         } catch (error) {
             console.error('Erro ao exportar dados:', error);
@@ -464,39 +534,111 @@
     }
 
     async function importarDados(dados) {
-        if (!dados || !dados.itens) {
+        if (!dados || !dados.metadata || !dados.itens) {
             throw new Error('Dados inválidos para importação');
+        }
+
+        // Verificar hash dos dados
+        const dadosParaHash = {
+            itens: dados.itens,
+            movimentacoes: dados.movimentacoes,
+            usuarios: dados.usuarios,
+            projetos: dados.projetos,
+            centrosCusto: dados.centrosCusto,
+            pacotes: dados.pacotes,
+            requisicoes: dados.requisicoes
+        };
+        const hashRecebido = dados.metadata.hash;
+        const hashCalculado = require('crypto')
+            .createHash('sha256')
+            .update(JSON.stringify(dadosParaHash))
+            .digest('hex');
+
+        if (hashRecebido !== hashCalculado) {
+            throw new Error('Dados corrompidos: hash não corresponde');
         }
         
         try {
-            // Iniciar transação para garantir atomicidade da operação
+            // Iniciar transação
             await run('BEGIN TRANSACTION');
             
-            // Limpar tabelas existentes
+            // Backup das tabelas antes da importação
+            const timestamp = new Date().toISOString().replace(/[:\-\.]/g, '');
+            await run(`CREATE TABLE IF NOT EXISTS itens_backup_${timestamp} AS SELECT * FROM itens`);
+            await run(`CREATE TABLE IF NOT EXISTS movimentacoes_backup_${timestamp} AS SELECT * FROM movimentacoes`);
+            await run(`CREATE TABLE IF NOT EXISTS usuarios_backup_${timestamp} AS SELECT * FROM usuarios`);
+            await run(`CREATE TABLE IF NOT EXISTS pacotes_requisicao_backup_${timestamp} AS SELECT * FROM pacotes_requisicao`);
+            await run(`CREATE TABLE IF NOT EXISTS requisicoes_backup_${timestamp} AS SELECT * FROM requisicoes`);
+            
+            // Limpar tabelas existentes mantendo estrutura
             await run('DELETE FROM movimentacoes');
+            await run('DELETE FROM requisicoes');
+            await run('DELETE FROM pacotes_requisicao');
             await run('DELETE FROM itens');
+            
+            // Inserir usuários (mantendo IDs existentes para referência)
+            for (const usuario of dados.usuarios) {
+                await run(`
+                    INSERT OR REPLACE INTO usuarios (id, name, email, password, userType)
+                    VALUES (?, ?, ?, ?, ?)
+                `, [usuario.id, usuario.name, usuario.email, usuario.password, usuario.userType]);
+            }
             
             // Inserir itens
             for (const item of dados.itens) {
-                // Remover o ID para evitar conflitos com a sequência do autoincrement
-                const { id, data_cadastro, ...itemSemId } = item;
-                await inserirItem(itemSemId);
+                await run(`
+                    INSERT INTO itens (
+                        id, nome, serie, descricao, origem, destino, 
+                        valor, nf, quantidade, minimo, ideal, infos
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [
+                    item.id, item.nome, item.serie, item.descricao,
+                    item.origem, item.destino, item.valor, item.nf,
+                    item.quantidade, item.minimo, item.ideal, item.infos
+                ]);
             }
             
-            if (dados.movimentacoes && Array.isArray(dados.movimentacoes)) {
-                for (const mov of dados.movimentacoes) {
-                    // Formatar dados para inserção
-                    const movimentacao = {
-                        itemId: mov.item_id,
-                        itemNome: mov.item_nome,
-                        tipo: mov.tipo,
-                        quantidade: mov.quantidade,
-                        destino: mov.destino,
-                        descricao: mov.descricao
-                    };
-                    
-                    await inserirMovimentacao(movimentacao);
-                }
+            // Inserir pacotes
+            for (const pacote of dados.pacotes) {
+                await run(`
+                    INSERT INTO pacotes_requisicao (
+                        id, userId, centroCusto, projeto, justificativa, 
+                        status, data_criacao, data_aprovacao, observacoes
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [
+                    pacote.id, pacote.userId, pacote.centroCusto,
+                    pacote.projeto, pacote.justificativa, pacote.status,
+                    pacote.data_criacao, pacote.data_aprovacao,
+                    pacote.observacoes
+                ]);
+            }
+            
+            // Inserir requisições
+            for (const req of dados.requisicoes) {
+                await run(`
+                    INSERT INTO requisicoes (
+                        id, userId, itemId, quantidade, centroCusto,
+                        projeto, justificativa, status, data,
+                        observacoes, pacoteId
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [
+                    req.id, req.userId, req.itemId, req.quantidade,
+                    req.centroCusto, req.projeto, req.justificativa,
+                    req.status, req.data, req.observacoes, req.pacoteId
+                ]);
+            }
+            
+            // Inserir movimentações
+            for (const mov of dados.movimentacoes) {
+                await run(`
+                    INSERT INTO movimentacoes (
+                        id, item_id, item_nome, tipo, quantidade,
+                        destino, descricao, data
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                `, [
+                    mov.id, mov.item_id, mov.item_nome, mov.tipo,
+                    mov.quantidade, mov.destino, mov.descricao, mov.data
+                ]);
             }
             
             // Confirmar transação
@@ -504,8 +646,14 @@
             
             return {
                 sucesso: true,
-                itensImportados: dados.itens.length,
-                movimentacoesImportadas: dados.movimentacoes ? dados.movimentacoes.length : 0
+                backup_timestamp: timestamp,
+                totais: {
+                    itens: dados.itens.length,
+                    movimentacoes: dados.movimentacoes.length,
+                    usuarios: dados.usuarios.length,
+                    pacotes: dados.pacotes.length,
+                    requisicoes: dados.requisicoes.length
+                }
             };
         } catch (error) {
             // Reverter alterações em caso de erro
@@ -648,6 +796,7 @@
     // Função para buscar itens de um pacote
     function buscarItensPacote(pacoteId) {
         return new Promise((resolve, reject) => {
+            console.log('Buscando itens do pacote ID:', pacoteId);
             const sql = `
                 SELECT 
                     r.*,
@@ -659,9 +808,17 @@
                 WHERE r.pacoteId = ?
                 ORDER BY r.data ASC
             `;
+            console.log('SQL buscarItensPacote:', sql);
+            console.log('Parâmetros:', [pacoteId]);
+            
             db.all(sql, [pacoteId], (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows);
+                if (err) {
+                    console.error('Erro ao buscar itens do pacote:', err);
+                    reject(err);
+                } else {
+                    console.log('Itens encontrados:', rows);
+                    resolve(rows);
+                }
             });
         });
     }
@@ -693,6 +850,18 @@
             try {
                 await run('BEGIN TRANSACTION');
                 
+                // Buscar dados do pacote
+                const pacote = await new Promise((resolve, reject) => {
+                    db.get('SELECT * FROM pacotes_requisicao WHERE id = ?', [pacoteId], (err, row) => {
+                        if (err) reject(err);
+                        else resolve(row);
+                    });
+                });
+                
+                if (!pacote) {
+                    throw new Error('Pacote não encontrado');
+                }
+                
                 // Buscar todas as requisições do pacote
                 const requisicoes = await buscarItensPacote(pacoteId);
                 
@@ -707,6 +876,16 @@
                 for (const req of requisicoes) {
                     await atualizarStatusRequisicao(req.id, 'aprovado');
                     await descontarEstoque(req.itemId, req.quantidade);
+                    
+                    // Registrar movimentação para cada item aprovado
+                    await inserirMovimentacao({
+                        itemId: req.itemId,
+                        itemNome: req.item_nome,
+                        tipo: 'saida',
+                        quantidade: req.quantidade,
+                        destino: pacote.centroCusto,
+                        descricao: `Requisição em pacote aprovada - Projeto: ${pacote.projeto} - ${pacote.justificativa}`
+                    });
                 }
                 
                 // Atualizar status do pacote
@@ -729,6 +908,18 @@
         return new Promise(async (resolve, reject) => {
             try {
                 await run('BEGIN TRANSACTION');
+                
+                // Buscar dados do pacote
+                const pacote = await new Promise((resolve, reject) => {
+                    db.get('SELECT * FROM pacotes_requisicao WHERE id = ?', [pacoteId], (err, row) => {
+                        if (err) reject(err);
+                        else resolve(row);
+                    });
+                });
+                
+                if (!pacote) {
+                    throw new Error('Pacote não encontrado');
+                }
                 
                 // Buscar requisições específicas
                 const requisicoes = await new Promise((resolve, reject) => {
@@ -755,6 +946,16 @@
                     }
                     await atualizarStatusRequisicao(req.id, 'aprovado');
                     await descontarEstoque(req.itemId, req.quantidade);
+                    
+                    // Registrar movimentação para cada item aprovado
+                    await inserirMovimentacao({
+                        itemId: req.itemId,
+                        itemNome: req.item_nome,
+                        tipo: 'saida',
+                        quantidade: req.quantidade,
+                        destino: pacote.centroCusto,
+                        descricao: `Requisição em pacote aprovada - Projeto: ${pacote.projeto} - ${pacote.justificativa}`
+                    });
                 }
                 
                 // Verificar status do pacote após aprovação
@@ -996,6 +1197,317 @@ function atualizarQuantidadeItem(id, novaQuantidade) {
     });
 }
 
+// Funções para gerenciar projetos
+function criarProjeto(projeto) {
+    return new Promise((resolve, reject) => {
+        const sql = `
+            INSERT INTO projetos (nome, descricao)
+            VALUES (?, ?)
+        `;
+        
+        db.run(sql, [projeto.nome, projeto.descricao], function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve({
+                    id: this.lastID,
+                    nome: projeto.nome,
+                    descricao: projeto.descricao
+                });
+            }
+        });
+    });
+}
+
+function buscarProjetos() {
+    return new Promise((resolve, reject) => {
+        const sql = `SELECT * FROM projetos WHERE ativo = 1 ORDER BY nome`;
+        
+        db.all(sql, [], (err, rows) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(rows);
+            }
+        });
+    });
+}
+
+function atualizarProjeto(id, projeto) {
+    return new Promise((resolve, reject) => {
+        const sql = `
+            UPDATE projetos 
+            SET nome = ?, descricao = ?, ativo = ?
+            WHERE id = ?
+        `;
+        
+        db.run(sql, [projeto.nome, projeto.descricao, projeto.ativo, id], function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(this.changes);
+            }
+        });
+    });
+}
+
+function removerProjeto(id) {
+    return new Promise((resolve, reject) => {
+        const sql = `UPDATE projetos SET ativo = 0 WHERE id = ?`;
+        
+        db.run(sql, [id], function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(this.changes);
+            }
+        });
+    });
+}
+
+// Funções para gerenciar centros de custo
+function criarCentroCusto(centroCusto) {
+    return new Promise((resolve, reject) => {
+        const sql = `
+            INSERT INTO centros_custo (nome, descricao)
+            VALUES (?, ?)
+        `;
+        
+        db.run(sql, [centroCusto.nome, centroCusto.descricao], function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve({
+                    id: this.lastID,
+                    nome: centroCusto.nome,
+                    descricao: centroCusto.descricao
+                });
+            }
+        });
+    });
+}
+
+function buscarCentrosCusto() {
+    return new Promise((resolve, reject) => {
+        const sql = `SELECT * FROM centros_custo WHERE ativo = 1 ORDER BY nome`;
+        
+        db.all(sql, [], (err, rows) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(rows);
+            }
+        });
+    });
+}
+
+function atualizarCentroCusto(id, centroCusto) {
+    return new Promise((resolve, reject) => {
+        const sql = `
+            UPDATE centros_custo 
+            SET nome = ?, descricao = ?, ativo = ?
+            WHERE id = ?
+        `;
+        
+        db.run(sql, [centroCusto.nome, centroCusto.descricao, centroCusto.ativo, id], function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(this.changes);
+            }
+        });
+    });
+}
+
+function removerCentroCusto(id) {
+    return new Promise((resolve, reject) => {
+        const sql = `UPDATE centros_custo SET ativo = 0 WHERE id = ?`;
+        
+        db.run(sql, [id], function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(this.changes);
+            }
+        });
+    });
+}
+
+// Função para buscar detalhes completos de um pacote
+function buscarPacoteDetalhado(pacoteId) {
+    return new Promise((resolve, reject) => {
+        console.log('Buscando detalhes do pacote ID:', pacoteId);
+        const sql = `
+            SELECT 
+                p.*,
+                u.name as solicitante_nome,
+                u.email as solicitante_email
+            FROM pacotes_requisicao p
+            LEFT JOIN usuarios u ON p.userId = u.id
+            WHERE p.id = ?
+        `;
+        
+        console.log('SQL:', sql);
+        console.log('Parâmetros:', [pacoteId]);
+        
+        db.get(sql, [pacoteId], (err, pacote) => {
+            if (err) {
+                console.error('Erro na consulta:', err);
+                reject(err);
+            } else {
+                console.log('Pacote encontrado:', pacote);
+                if (pacote) {
+                    // Buscar itens do pacote
+                    buscarItensPacote(pacoteId).then(itens => {
+                        console.log('Itens do pacote:', itens);
+                        pacote.itens = itens;
+                        resolve(pacote);
+                    }).catch(reject);
+                } else {
+                    console.log('Pacote não encontrado');
+                    resolve(null);
+                }
+            }
+        });
+    });
+}
+
+// Função para editar quantidades de itens do pacote (sem aprovar)
+function editarQuantidadesPacote(pacoteId, itensEditados) {
+    return new Promise((resolve, reject) => {
+        db.serialize(() => {
+            db.run('BEGIN TRANSACTION');
+            
+            try {
+                let promises = [];
+                
+                itensEditados.forEach(item => {
+                    // Atualizar apenas a quantidade da requisição
+                    const sql = `
+                        UPDATE requisicoes 
+                        SET quantidade = ?, observacoes = 'Quantidade editada pelo administrador'
+                        WHERE id = ?
+                    `;
+                    
+                    promises.push(new Promise((res, rej) => {
+                        db.run(sql, [item.nova_quantidade, item.item_id], function(err) {
+                            if (err) rej(err);
+                            else res(this.changes);
+                        });
+                    }));
+                });
+                
+                Promise.all(promises).then(() => {
+                    db.run('COMMIT');
+                    resolve();
+                }).catch(err => {
+                    db.run('ROLLBACK');
+                    reject(err);
+                });
+                
+            } catch (error) {
+                db.run('ROLLBACK');
+                reject(error);
+            }
+        });
+    });
+}
+
+// Função para aprovar itens com quantidade personalizada
+function aprovarItensPacoteComQuantidade(pacoteId, itensAprovados) {
+    return new Promise((resolve, reject) => {
+        db.serialize(() => {
+            db.run('BEGIN TRANSACTION');
+            
+            try {
+                let promises = [];
+                
+                itensAprovados.forEach(item => {
+                    // Atualizar status da requisição
+                    const sql = `
+                        UPDATE requisicoes 
+                        SET status = 'aprovado', observacoes = 'Aprovado parcialmente'
+                        WHERE id = ?
+                    `;
+                    
+                    promises.push(new Promise((res, rej) => {
+                        db.run(sql, [item.item_id], function(err) {
+                            if (err) rej(err);
+                            else res(this.changes);
+                        });
+                    }));
+                    
+                    // Descontar do estoque
+                    promises.push(descontarEstoque(item.item_id, item.quantidade_aprovada));
+                    
+                    // Registrar movimentação
+                    promises.push(inserirMovimentacao({
+                        itemId: item.item_id,
+                        itemNome: item.item_nome,
+                        tipo: 'saida',
+                        quantidade: item.quantidade_aprovada,
+                        destino: item.centro_custo || 'Aprovado parcialmente',
+                        descricao: `Aprovado parcialmente do pacote ${pacoteId} - Quantidade: ${item.quantidade_aprovada}`
+                    }));
+                });
+                
+                Promise.all(promises).then(() => {
+                    db.run('COMMIT');
+                    resolve();
+                }).catch(err => {
+                    db.run('ROLLBACK');
+                    reject(err);
+                });
+                
+            } catch (error) {
+                db.run('ROLLBACK');
+                reject(error);
+            }
+        });
+    });
+}
+
+// Função para buscar movimentações por usuário
+function buscarMovimentacoesPorUsuario(userId, dias = 30) {
+    return new Promise((resolve, reject) => {
+        const sql = `
+            SELECT 
+                m.*,
+                i.nome as item_nome,
+                u.name as usuario_nome
+            FROM movimentacoes m
+            JOIN itens i ON m.item_id = i.id
+            JOIN usuarios u ON m.usuario_id = u.id
+            WHERE m.usuario_id = ? 
+            AND m.data >= datetime('now', '-${dias} days')
+            ORDER BY m.data DESC
+        `;
+        
+        db.all(sql, [userId], (err, rows) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(rows);
+            }
+        });
+    });
+}
+
+// Função para buscar todos os usuários
+function buscarTodosUsuarios() {
+    return new Promise((resolve, reject) => {
+        const sql = `SELECT id, name, email, userType FROM usuarios ORDER BY name`;
+        
+        db.all(sql, [], (err, rows) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(rows);
+            }
+        });
+    });
+}
+
 // 3. Adicionar essas funções no module.exports:
 module.exports = {
     // Funções de usuários
@@ -1042,5 +1554,22 @@ module.exports = {
     aprovarItensPacote,
     negarItensPacote,
     rejeitarPacoteCompleto,
-    verificarEAtualizarStatusPacote
+    verificarEAtualizarStatusPacote,
+    buscarPacoteDetalhado,
+    aprovarItensPacoteComQuantidade,
+    editarQuantidadesPacote,
+    
+    // Funções de configurações
+    criarProjeto,
+    buscarProjetos,
+    atualizarProjeto,
+    removerProjeto,
+    criarCentroCusto,
+    buscarCentrosCusto,
+    atualizarCentroCusto,
+    removerCentroCusto,
+    
+    // Funções de relatórios
+    buscarMovimentacoesPorUsuario,
+    buscarTodosUsuarios
 };

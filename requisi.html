@@ -3,73 +3,243 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="main.css">
-    <link rel="icon" type="image/png" href="andritzlogo2.png">
+    <link rel="stylesheet" href="/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="/andritzlogo2.png">
     <title>Sistema de Requisições</title>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="header-content">
-                <img src="./andritzlogo.png" alt="Andritz Logo" class="logo">
-                <a href="/login.html"><button class="btn btn-logout" onclick="logout()">Sair</button></a>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <img src="./andritzlogo.png" alt="Andritz Logo" class="sidebar-logo">
+                <span class="brand-name">REQUISIÇÕES</span>
             </div>
-            <h1>Sistema de Requisições</h1>
-            <div class="nav-buttons">
-                <button class="nav-btn active" onclick="showSection('novoPacote')">Novo Pacote</button>
-                <button class="nav-btn" onclick="showSection('meusPacotes')">Meus Pacotes</button>
-                <button class="nav-btn" onclick="showSection('novaRequisicao')">Nova Requisição</button>
-                <button class="nav-btn" onclick="showSection('minhasRequisicoes')">Minhas Requisições</button>
-                <button class="nav-btn admin-only" onclick="showSection('aprovarRequisicoes')">Aprovar Requisições</button>
-                <button class="nav-btn" id="btnVoltarEstoque" onclick="window.location.href='index.html'">Voltar ao Estoque</button>
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        
+        <div class="sidebar-search">
+            <input type="text" placeholder="Procurar opção do menu..." class="search-input">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <ul class="nav-menu">
+                <li class="nav-item active">
+                    <a href="#novoPacote" class="nav-link" onclick="showSection('novoPacote')">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Nova Requisição</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#meusPacotes" class="nav-link" onclick="showSection('meusPacotes')">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Minhas Requisições</span>
+                    </a>
+                </li>
+                <li class="nav-item admin-only">
+                    <a href="#aprovarRequisicoes" class="nav-link" onclick="showSection('aprovarRequisicoes')">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Aprovar Requisições</span>
+                    </a>
+                </li>
+                <li class="nav-item admin-only">
+                    <a href="#configuracoes" class="nav-link" onclick="showSection('configuracoes')">
+                        <i class="fas fa-cog"></i>
+                        <span>Configurações</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="index.html" class="nav-link">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Voltar ao Estoque</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="header-left">
+             <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+                <h1 class="page-title">Sistema de Requisições</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <span class="user-name" id="userName">Usuário</span>
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+                <a href="/login.html" class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sair</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Seção Novo Pacote -->
+        <div id="novoPacote" class="content-section active">
+            <div class="section-header">
+                <h2>Criar Nova Requisição</h2>
+                <p>Preencha os dados para criar uma requisição</p>
+            </div>
+
+            <div class="content-card">
+                <div class="card-header">
+                    <h3>Formulário Requisição</h3>
+                </div>
+                <div class="card-content">
+                    <form id="pacoteForm" class="modern-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="centroCusto">Centro de Custo</label>
+                                <select id="centroCusto" required>
+                                    <option value="">Selecione um centro de custo...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="projeto">Projeto</label>
+                                <select id="projeto" required>
+                                    <option value="">Selecione um projeto...</option>
+                                </select>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="justificativa">Justificativa</label>
+                                <textarea id="justificativa" rows="3" required></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h4>Itens do Pacote</h4>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="itemSelect">Selecionar Item</label>
+                                    <select id="itemSelect">
+                                        <option value="">Selecione um item...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="itemQuantidade">Quantidade</label>
+                                    <input type="number" id="itemQuantidade" min="1" value="1">
+                                </div>
+                                <div class="form-group">
+                                    <label>&nbsp;</label>
+                                    <button type="button" class="btn btn-primary" onclick="adicionarItemAoFormulario()">
+                                        <i class="fas fa-plus"></i>
+                                        Adicionar Item
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="table-container">
+                                <table id="tabelaItensPacote" class="modern-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Item</th>
+                                            <th>Quantidade</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                Criar Requisição
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
 
-        <!-- Seção Novo Pacote -->
-        <div id="novoPacote" class="content section active">
-            <h2>Criar Novo Pacote de Requisição</h2>
-            <form id="pacoteForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="centroCusto">Centro de Custo:</label>
-                        <input type="text" id="centroCusto" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="projeto">Projeto:</label>
-                        <input type="text" id="projeto" required>
-                    </div>
-                </div>
+        <!-- Seção Meus Pacotes -->
+        <div id="meusPacotes" class="content-section">
+            <div class="section-header">
+                <h2>Minhas Requisições</h2>
+                <p>Gerencie seus pacotes de requisição</p>
+            </div>
 
-                <div class="form-group">
-                    <label for="justificativa">Justificativa:</label>
-                    <textarea id="justificativa" rows="3" required></textarea>
+            <div class="content-card">
+                <div class="card-header">
+                    <h3>Filtros e Pesquisa</h3>
                 </div>
-
-                <div id="itensPacote">
-                    <h3>Itens do Pacote</h3>
-                    <div class="form-row">
+                <div class="card-content">
+                    <div class="filter-grid">
                         <div class="form-group">
-                            <label for="itemSelect">Selecionar Item:</label>
-                            <select id="itemSelect">
-                                <option value="">Selecione um item...</option>
+                            <label for="filtroStatusMeusPacotes">Status</label>
+                            <select id="filtroStatusMeusPacotes" onchange="filtrarMeusPacotes()" class="filter-select">
+                                <option value="">Todos</option>
+                                <option value="pendente">Pendentes</option>
+                                <option value="parcialmente aprovado">Parcialmente Aprovados</option>
+                                <option value="aprovado">Aprovados</option>
+                                <option value="rejeitado">Rejeitados</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="itemQuantidade">Quantidade:</label>
-                            <input type="number" id="itemQuantidade" min="1" value="1">
+                            <label for="filtroDataMeusPacotes">Data</label>
+                            <input type="date" id="filtroDataMeusPacotes" onchange="filtrarMeusPacotes()">
+                        </div>
+                        <div class="form-group">
+                            <label for="pesquisaMeusPacotes">Pesquisar</label>
+                            <input type="text" id="pesquisaMeusPacotes" placeholder="Centro de custo ou projeto..." onkeyup="filtrarMeusPacotes()">
                         </div>
                         <div class="form-group">
                             <label>&nbsp;</label>
-                            <button type="button" class="btn" onclick="adicionarItemAoFormulario()">Adicionar Item</button>
+                            <button class="btn btn-secondary" onclick="limparFiltrosMeusPacotes()">
+                                <i class="fas fa-eraser"></i>
+                                Limpar Filtros
+                            </button>
                         </div>
                     </div>
+                </div>
+            </div>
 
+            <div class="content-card">
+                <div class="card-header">
+                    <h3>Lista de requisições</h3>
+                </div>
+                <div class="card-content">
+                    <div id="listaPacotes" class="pacotes-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aprovar Pacotes (Admin) -->
+        <div id="aprovarRequisicoes" class="content-section">
+            <div class="section-header">
+                <h2>Aprovar Requisição</h2>
+                <p>Gerencie requisições pendentes de aprovação</p>
+            </div>
+
+            <div class="content-card">
+                <div class="card-header">
+                    <h3>Requisições Pendentes</h3>
+                </div>
+                <div class="card-content">
                     <div class="table-container">
-                        <table id="tabelaItensPacote">
+                        <table id="tabelaAprovarRequisicoes" class="modern-table">
                             <thead>
                                 <tr>
-                                    <th>Item</th>
-                                    <th>Quantidade</th>
+                                    <th>Data</th>
+                                    <th>Solicitante</th>
+                                    <th>Pacote</th>
+                                    <th>Total</th>
+                                    <th>Centro de Custo</th>
+                                    <th>Projeto</th>
+                                    <th>Justificativa</th>
                                     <th>Ações</th>
                                 </tr>
                             </thead>
@@ -77,123 +247,139 @@
                         </table>
                     </div>
                 </div>
-
-                <button type="submit" class="btn">Criar Pacote</button>
-            </form>
+            </div>
         </div>
 
-        <!-- Seção Meus Pacotes -->
-        <div id="meusPacotes" class="content section">
-            <h2>Meus Pacotes de Requisição</h2>
-            <div class="filter-section">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="statusFiltro">Status:</label>
-                        <select id="statusFiltro" onchange="filtrarPacotes()">
-                            <option value="todos">Todos</option>
-                            <option value="pendente">Pendentes</option>
-                            <option value="aprovado">Aprovados</option>
-                            <option value="rejeitado">Rejeitados</option>
-                        </select>
+        <!-- Configurações de Pacotes (Admin) -->
+        <div id="configuracoes" class="content-section">
+            <div class="section-header">
+                <h2>Configurações de Requisições</h2>
+                <p>Gerencie projetos e centros de custo</p>
+            </div>
+
+            <div class="content-card">
+                <div class="card-header">
+                    <h3>Configurações</h3>
+                    <div class="header-actions">
+                        <button class="config-tab active" onclick="showConfigTab('projetos')">
+                            <i class="fas fa-project-diagram"></i>
+                            Projetos
+                        </button>
+                        <button class="config-tab" onclick="showConfigTab('centros-custo')">
+                            <i class="fas fa-building"></i>
+                            Centros de Custo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-content">
+                    <!-- Seção de Projetos -->
+                    <div id="config-projetos" class="config-section active">
+                        <div class="config-form">
+                            <h4>Gerenciar Projetos</h4>
+                            <form id="projetoForm" class="modern-form">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="projetoNome">Nome do Projeto</label>
+                                        <input type="text" id="projetoNome" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="projetoDescricao">Descrição</label>
+                                        <input type="text" id="projetoDescricao">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>&nbsp;</label>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-plus"></i>
+                                            Adicionar Projeto
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="table-container">
+                            <table id="tabelaProjetos" class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Descrição</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Seção de Centros de Custo -->
+                    <div id="config-centros-custo" class="config-section">
+                        <div class="config-form">
+                            <h4>Gerenciar Centros de Custo</h4>
+                            <form id="centroCustoForm" class="modern-form">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="centroCustoNome">Nome do Centro de Custo</label>
+                                        <input type="text" id="centroCustoNome" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="centroCustoDescricao">Descrição</label>
+                                        <input type="text" id="centroCustoDescricao">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>&nbsp;</label>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-plus"></i>
+                                            Adicionar Centro de Custo
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="table-container">
+                            <table id="tabelaCentrosCusto" class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Descrição</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <div id="listaPacotes" class="pacotes-container"></div>
         </div>
     </div>
-    <!-- Container já existe acima, removendo duplicação -->
 
-        <!-- Indicador de loading -->
-        <div id="loading" class="loading" style="display: none;">
+    <!-- Indicador de loading -->
+    <div id="loading" class="loading-overlay hidden">
+        <div class="loading-content">
+            <i class="fas fa-spinner fa-spin"></i>
             <p>Carregando dados do usuário...</p>
         </div>
+    </div>
 
-        <!-- Mensagem de acesso negado -->
-        <div id="accessDenied" class="access-denied" style="display: none;">
+    <!-- Mensagem de acesso negado -->
+    <div id="accessDenied" class="access-denied-overlay hidden">
+        <div class="access-denied-content">
+            <i class="fas fa-ban"></i>
             <h2>Acesso Negado</h2>
             <p>Você não tem permissão para acessar esta página.</p>
-            <button class="btn" onclick="window.location.href='login.html'">Voltar ao Login</button>
-        </div>
-
-        <!-- Nova Requisição -->
-        <div id="novaRequisicao" class="content section">
-            <h2>Nova Requisição</h2>
-            <form id="requisicaoForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="itemRequisicao">Item:</label>
-                        <select id="itemRequisicao" required>
-                            <option value="">Selecione um item...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="quantidadeRequisicao">Quantidade:</label>
-                        <input type="number" id="quantidadeRequisicao" required min="1">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="centroCusto">Centro de Custo:</label>
-                        <input type="text" id="centroCusto" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="projeto">Projeto/WBS:</label>
-                        <input type="text" id="projeto" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="justificativa">Justificativa:</label>
-                    <textarea id="justificativa" rows="3"></textarea>
-                </div>
-                <button type="submit" class="btn">Enviar Requisição</button>
-            </form>
-        </div>
-
-        <!-- Minhas Requisições -->
-        <div id="minhasRequisicoes" class="content section">
-            <h2>Minhas Requisições</h2>
-            <div class="table-container">
-                <table id="tabelaMinhasRequisicoes">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Item</th>
-                            <th>Quantidade</th>
-                            <th>Centro de Custo</th>
-                            <th>Status</th>
-                            <th>Observações</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Aprovar Requisições (Admin) -->
-        <div id="aprovarRequisicoes" class="content section">
-            <h2>Aprovar Requisições</h2>
-            <div class="table-container">
-                <table id="tabelaAprovarRequisicoes">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Solicitante</th>
-                            <th>Item</th>
-                            <th>Quantidade</th>
-                            <th>Centro de Custo</th>
-                            <th>Projeto</th>
-                            <th>Justificativa</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
+            <button class="btn btn-primary" onclick="window.location.href='login.html'">
+                <i class="fas fa-sign-in-alt"></i>
+                Voltar ao Login
+            </button>
         </div>
     </div>
 
     <script>
+
         // Função para verificar se o usuário é admin
         function isUserAdmin() {
             const userData = JSON.parse(localStorage.getItem('userData') || '{}');
@@ -203,19 +389,15 @@
         // Função para configurar visibilidade dos elementos baseado no tipo de usuário
         function configureUserInterface() {
             const isAdmin = isUserAdmin();
-            // Mostrar/ocultar botão "Voltar ao Estoque" para usuários não-admin
-            const btnVoltar = document.getElementById('btnVoltarEstoque');
-            if (btnVoltar) {
-                btnVoltar.style.display = isAdmin ? 'block' : 'none';
-                btnVoltar.onclick = function() {
-                    window.location.href = 'index.html';
-                };
-            }
             
-            // Mostrar/ocultar seção de aprovar requisições baseado no tipo de usuário
-            const adminButtons = document.querySelectorAll('.admin-only');
-            adminButtons.forEach(button => {
-                button.style.display = isAdmin ? 'block' : 'none';
+            // Mostrar/ocultar itens da sidebar baseado no tipo de usuário
+            const adminItems = document.querySelectorAll('.nav-item.admin-only');
+            adminItems.forEach(item => {
+                if (isAdmin) {
+                    item.classList.remove('hidden');
+                } else {
+                    item.classList.add('hidden');
+                }
             });
         }
 
@@ -224,25 +406,15 @@
             const userData = JSON.parse(localStorage.getItem('userData') || '{}');
             
             if (!userData.id) {
-                document.getElementById('accessDenied').style.display = 'block';
-                document.querySelector('.container').style.display = 'none';
+                document.getElementById('accessDenied').classList.remove('hidden');
+                document.querySelector('.main-content').classList.add('hidden');
                 return false;
             }
             
-            // Adicionar indicador do tipo de usuário na interface
-            const userTypeIndicator = document.createElement('div');
-            userTypeIndicator.className = 'user-type-indicator';
-            userTypeIndicator.innerHTML = `
-                <span class="user-info">
-                    Logado como: <strong>${userData.name}</strong> 
-                    ${userData.userType === 'admin' ? '<span class="admin-badge">ADMIN</span>' : ''}
-                </span>
-            `;
-            
-            // Adicionar ao header
-            const header = document.querySelector('.header');
-            if (header) {
-                header.appendChild(userTypeIndicator);
+            // Atualizar nome do usuário no header
+            const userNameElement = document.getElementById('userName');
+            if (userNameElement) {
+                userNameElement.textContent = userData.name || 'Usuário';
             }
             
             return true;
@@ -255,50 +427,52 @@
             window.location.href = 'login.html';
         }
 
-        // Adicionar botão de logout na interface
-        function adicionarBotaoLogout() {
-            const logoutButton = document.createElement('button');
-            logoutButton.className = 'btn-logout';
-            logoutButton.textContent = 'Sair';
-            logoutButton.onclick = logout;
-            
-            document.body.appendChild(logoutButton);
-        }
-
         // Função para mostrar seções
         function showSection(sectionId) {
             // Ocultar todas as seções
-            document.querySelectorAll('.section').forEach(section => {
+            document.querySelectorAll('.content-section').forEach(section => {
                 section.classList.remove('active');
             });
             
             // Remover classe active de todos os botões
-            document.querySelectorAll('.nav-btn').forEach(btn => {
+            document.querySelectorAll('.nav-tab').forEach(btn => {
                 btn.classList.remove('active');
             });
             
             // Mostrar seção selecionada
-            document.getElementById(sectionId).classList.add('active');
+            const selectedSection = document.getElementById(sectionId);
+            if (selectedSection) {
+                selectedSection.classList.add('active');
+            }
             
             // Adicionar classe active no botão correspondente
-            event.target.classList.add('active');
+            const activeButton = event.target.closest('.nav-tab');
+            if (activeButton) {
+                activeButton.classList.add('active');
+            }
         }
 
         // Função para inicializar o sistema
         function inicializarSistema() {
             // Mostrar loading
-            document.getElementById('loading').style.display = 'block';
+            document.getElementById('loading').classList.remove('hidden');
+            
+            
             // Verificar se o usuário está logado e carregar dados
             if (!carregarDadosUsuario()) {
-                document.getElementById('loading').style.display = 'none';
+                document.getElementById('loading').classList.add('hidden');
                 return;
             }
+            
             // Configurar interface baseada no tipo de usuário
             configureUserInterface();
-            // Adicionar botão de logout
-            adicionarBotaoLogout();
+            
+            // Inicializar sistema de requisições
+            inicializarSistemaRequisicoes();
+            
             // Ocultar loading
-            document.getElementById('loading').style.display = 'none';
+            document.getElementById('loading').classList.add('hidden');
+            
             // Proteger acesso ao estoque - apenas verificar se estamos na página index.html
             let userData = {};
             try {
@@ -314,14 +488,11 @@
                 window.location.href = 'requisi.html';
                 return;
             }
-            // Aqui você pode adicionar outras inicializações como:
-            // - Carregar itens para o select
-            // - Carregar requisições do usuário
-            // - Carregar requisições pendentes (se admin)
         }
 
         // Inicializar quando a página carregar
         document.addEventListener('DOMContentLoaded', inicializarSistema);
+        
     </script>
 
     <script src="requisi.js"></script>
