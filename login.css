@@ -22,15 +22,35 @@ body {
     border-radius: 6px;
     border: 1px solid #e1e5e9;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     width: 100%;
     max-width: 400px;
     position: relative;
+    min-height: 500px;
+    max-height: 90vh;
 }
 
 .form-container {
-    padding: 40px;
-    min-height: 500px;
+    padding: 40px 40px 60px 40px;
+    opacity: 0;
+    visibility: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    transform: translateX(20px);
+    transition: all 0.3s ease-in-out;
+}
+
+.form-container.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
 }
 
 .logo {
@@ -52,8 +72,9 @@ body {
 }
 
 .form-group {
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     position: relative;
+    width: 100%;
 }
 
 .form-group label {
@@ -210,13 +231,21 @@ body {
 }
 
 .loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
     text-align: center;
-    padding: 20px;
+    background: #ffffff;
 }
 
 .loading.show {
-    display: block;
+    display: flex;
 }
 
 .spinner {
@@ -235,13 +264,22 @@ body {
 }
 
 .user-info {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     padding: 40px;
+    background: #ffffff;
 }
 
 .user-info.show {
-    display: block;
+    display: flex;
 }
 
 .user-info h2 {
@@ -295,17 +333,30 @@ body {
     width: 70%;
 }
 
+
+
 @media (max-width: 480px) {
     .container {
         margin: 10px;
         border-radius: 6px;
+        height: calc(100vh - 20px);
+        max-height: none;
     }
     
     .form-container {
-        padding: 24px 20px;
+        padding: 24px 20px 40px 20px;
     }
     
     .logo h1 {
         font-size: 20px;
+    }
+    
+    .form-group {
+        margin-bottom: 16px;
+    }
+    
+    .switch-form {
+        margin-top: 24px;
+        padding-bottom: 16px;
     }
 }
