@@ -314,7 +314,7 @@ async function atualizarSelectRetirada() {
     const pacotesList = document.getElementById('pacotesPendentes');
     if (pacotesList) {
         try {
-            const pacotes = await apiRequest('/pacotes/pendentes', 'GET');
+            const pacotes = await apiRequest('/pacotes-requisicao/pendentes', 'GET');
             pacotesList.innerHTML = '';
             
             if (pacotes.length === 0) {
@@ -328,7 +328,13 @@ async function atualizarSelectRetirada() {
                         <p><strong>Centro de Custo:</strong> ${pacote.centroCusto}</p>
                         <p><strong>Projeto:</strong> ${pacote.projeto}</p>
                         <p><strong>Justificativa:</strong> ${pacote.justificativa}</p>
-                        <p><strong>Itens:</strong> ${pacote.total_itens || 0} • <strong>Total:</strong> ${pacote.total_quantidade || 0} unidades</p>
+                        <div class="itens-pacote">
+                            ${pacote.itens.map(item => `
+                                <div class="item-pacote">
+                                    <span>${item.nome} - Qtd: ${item.quantidade}</span>
+                                </div>
+                            `).join('')}
+                        </div>
                         <div class="acoes-pacote">
                             <button onclick="aprovarPacote(${pacote.id})" class="btn btn-success">Aprovar</button>
                             <button onclick="rejeitarPacote(${pacote.id})" class="btn btn-danger">Rejeitar</button>
@@ -344,8 +350,40 @@ async function atualizarSelectRetirada() {
     }
 }
 
-// REMOVIDO: Funções obsoletas de criar pacote de requisição
-// Os pacotes agora são criados através da interface de requisições
+// Função para criar pacote de requisição
+async function criarPacoteRequisicao() {
+    const centroCusto = document.getElementById('centroCustoPacote').value;
+    const projeto = document.getElementById('projetoPacote').value;
+    const justificativa = document.getElementById('justificativaPacote').value;
+
+    try {
+        const response = await apiRequest('/pacotes-requisicao', 'POST', {
+            centroCusto,
+            projeto,
+            justificativa
+        });
+        
+        alert('Pacote de requisição criado com sucesso!');
+        return response.id;
+    } catch (error) {
+        alert('Erro ao criar pacote de requisição: ' + error.message);
+        return null;
+    }
+}
+
+// Função para adicionar item ao pacote
+async function adicionarItemAoPacote(pacoteId, itemId, quantidade) {
+    try {
+        await apiRequest(`/pacotes-requisicao/${pacoteId}/itens`, 'POST', {
+            itemId,
+            quantidade
+        });
+        return true;
+    } catch (error) {
+        alert('Erro ao adicionar item ao pacote: ' + error.message);
+        return false;
+    }
+}
 
 document.getElementById('retiradaForm').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -354,17 +392,30 @@ document.getElementById('retiradaForm').addEventListener('submit', async functio
     const quantidade = parseInt(document.getElementById('quantidadeRetirada').value);
     const destino = document.getElementById('destinoRetirada').value;
     const observacao = document.getElementById('observacaoRetirada').value;
+    const usarPacote = document.getElementById('usarPacote').checked;
     
     try {
-        await apiRequest(`/itens/${itemId}/retirar`, 'POST', {
-            quantidade: quantidade,
-            destino: destino,
-            observacao: observacao
-        });
-        
-        alert('Retirada realizada com sucesso!');
-        document.getElementById('retiradaForm').reset();
-        await atualizarSelectRetirada();
+        if (usarPacote) {
+            const pacoteId = await criarPacoteRequisicao();
+            if (pacoteId) {
+                const sucesso = await adicionarItemAoPacote(pacoteId, itemId, quantidade);
+                if (sucesso) {
+                    alert('Item adicionado ao pacote de requisição com sucesso!');
+                    document.getElementById('retiradaForm').reset();
+                    await atualizarSelectRetirada();
+                }
+            }
+        } else {
+            await apiRequest(`/itens/${itemId}/retirar`, 'POST', {
+                quantidade: quantidade,
+                destino: destino,
+                observacao: observacao
+            });
+            
+            alert('Retirada realizada com sucesso!');
+            document.getElementById('retiradaForm').reset();
+            await atualizarSelectRetirada();
+        }
     } catch (error) {
         alert('Erro ao realizar operação: ' + error.message);
     }
@@ -467,17 +518,11 @@ async function gerarRelatorioMovimentacao() {
             <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
                 <input type="text" id="pesquisaMovimentacao" placeholder="Pesquisar por nome, destino ou data" style="padding:4px;">
                 <input type="number" id="filtroQtdMov" placeholder="Quantidade" min="1" style="width:100px;padding:4px;">
-                <select id="filtroUsuarioMov" style="padding:4px;min-width:150px;">
-                    <option value="">Todos os usuários</option>
-                </select>
                 <button class="btn" id="btnFiltrarMov">Filtrar</button>
                 <button class="btn" id="btnLimparFiltroMov">Limpar</button>
             </div>
         `;
         document.getElementById('relatorioMovimentacao').parentNode.insertBefore(filtrosDiv, document.getElementById('relatorioMovimentacao'));
-        
-        // Carregar lista de usuários
-        carregarUsuariosParaFiltro();
     }
 
     try {
@@ -487,7 +532,6 @@ async function gerarRelatorioMovimentacao() {
         // Filtros
         let pesquisa = document.getElementById('pesquisaMovimentacao').value.trim().toLowerCase();
         let qtdFiltro = document.getElementById('filtroQtdMov').value;
-        let usuarioFiltro = document.getElementById('filtroUsuarioMov').value;
 
         let movFiltradas = movimentacoes.filter(mov => {
             let nomeMatch = mov.item_nome && mov.item_nome.toLowerCase().includes(pesquisa);
@@ -497,8 +541,7 @@ async function gerarRelatorioMovimentacao() {
             let dataMatch = dataStr.includes(pesquisa);
             let pesquisaOk = !pesquisa || nomeMatch || destinoMatch || dataMatch;
             let qtdOk = !qtdFiltro || mov.quantidade == qtdFiltro;
-            let usuarioOk = !usuarioFiltro || (mov.usuario_id && mov.usuario_id.toString() === usuarioFiltro);
-            return pesquisaOk && qtdOk && usuarioOk;
+            return pesquisaOk && qtdOk;
         });
 
         // Estatísticas do período
@@ -891,7 +934,7 @@ window.exportarRelatorio = async function(tipo) {
 async function aprovarPacote(pacoteId) {
     if (confirm('Tem certeza que deseja aprovar este pacote?')) {
         try {
-            await apiRequest(`/pacotes/${pacoteId}/aprovar`, 'POST');
+            await apiRequest(`/pacotes-requisicao/${pacoteId}/aprovar`, 'POST');
             alert('Pacote aprovado com sucesso!');
             await atualizarSelectRetirada(); // Atualiza a lista de pacotes
         } catch (error) {
@@ -904,7 +947,7 @@ async function rejeitarPacote(pacoteId) {
     const motivo = prompt('Por favor, informe o motivo da rejeição:');
     if (motivo) {
         try {
-            await apiRequest(`/pacotes/${pacoteId}/rejeitar`, 'POST', { motivo });
+            await apiRequest(`/pacotes-requisicao/${pacoteId}/rejeitar`, 'POST', { motivo });
             alert('Pacote rejeitado com sucesso!');
             await atualizarSelectRetirada(); // Atualiza a lista de pacotes
         } catch (error) {
@@ -1125,7 +1168,22 @@ window.addEventListener('offline', function() {
     }
 });
 
-// REMOVIDO: Controle de visibilidade do formulário de pacotes obsoleto
+// Controle de visibilidade do formulário de pacotes
+document.getElementById('usarPacote')?.addEventListener('change', function(e) {
+    const pacoteInfo = document.getElementById('pacoteInfo');
+    if (pacoteInfo) {
+        pacoteInfo.style.display = e.target.checked ? 'block' : 'none';
+        
+        // Tornar campos obrigatórios apenas quando pacote está ativo
+        const campos = ['centroCustoPacote', 'projetoPacote', 'justificativaPacote'];
+        campos.forEach(id => {
+            const campo = document.getElementById(id);
+            if (campo) {
+                campo.required = e.target.checked;
+            }
+        });
+    }
+});
 
 // Inicializar o sistema
 document.addEventListener('DOMContentLoaded', async function() {
@@ -1162,27 +1220,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         tentarReconectar();
     }
 });
-
-// Função para carregar usuários para o filtro
-async function carregarUsuariosParaFiltro() {
-    try {
-        const usuarios = await apiRequest('/usuarios');
-        const select = document.getElementById('filtroUsuarioMov');
-        if (select) {
-            // Manter a opção "Todos os usuários"
-            select.innerHTML = '<option value="">Todos os usuários</option>';
-            
-            usuarios.forEach(usuario => {
-                const option = document.createElement('option');
-                option.value = usuario.id;
-                option.textContent = usuario.name;
-                select.appendChild(option);
-            });
-        }
-    } catch (error) {
-        console.error('Erro ao carregar usuários para filtro:', error);
-    }
-}
 
 // Fechar modal ao clicar fora dele
 window.onclick = function(event) {
