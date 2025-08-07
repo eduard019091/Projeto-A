@@ -16,21 +16,13 @@ function configureUserInterface() {
     
     // Mostrar/ocultar elementos admin
     document.querySelectorAll('.admin-only').forEach(el => {
-        if (isAdmin) {
-            el.classList.remove('hidden');
-        } else {
-            el.classList.add('hidden');
-        }
+        el.style.display = isAdmin ? 'block' : 'none';
     });
 
     // Configurar o botão de voltar ao estoque
     const btnVoltar = document.getElementById('btnVoltarEstoque');
     if (btnVoltar) {
-        if (isAdmin) {
-        btnVoltar.classList.remove('hidden');
-    } else {
-        btnVoltar.classList.add('hidden');
-    }
+        btnVoltar.style.display = isAdmin ? 'block' : 'none';
         btnVoltar.onclick = function() {
             window.location.href = 'index.html';
         };
@@ -221,6 +213,84 @@ function inicializarSistemaRequisicoes() {
     }, 100);
 }
 
+// Função para exportar pacotes para Excel
+function exportarPacotesParaExcel(pacotes, tipo = 'meus-pacotes') {
+    // Criar uma nova planilha
+    const wb = XLSX.utils.book_new();
+    
+    pacotes.forEach(pacote => {
+        // Formatar dados do pacote
+        const dadosPacote = {
+            'ID do Pacote': pacote.id,
+            'Data de Criação': new Date(pacote.data_criacao).toLocaleString(),
+            'Centro de Custo': pacote.centroCusto,
+            'Projeto': pacote.projeto,
+            'Justificativa': pacote.justificativa,
+            'Status': pacote.status,
+            'Total de Itens': pacote.itens ? pacote.itens.length : 0
+        };
+
+        // Criar planilha para o pacote
+        const wsPacote = XLSX.utils.json_to_sheet([dadosPacote]);
+        
+        // Adicionar espaço entre as tabelas
+        XLSX.utils.sheet_add_json(wsPacote, [{}], {origin: -1});
+        
+        // Adicionar itens do pacote
+        if (pacote.itens && pacote.itens.length > 0) {
+            const dadosItens = pacote.itens.map(item => ({
+                'Item': item.nome,
+                'Quantidade': item.quantidade,
+                'Status': item.status || pacote.status
+            }));
+            XLSX.utils.sheet_add_json(wsPacote, dadosItens, {origin: -1});
+        }
+        
+        // Adicionar a planilha ao workbook
+        XLSX.utils.book_append_sheet(wb, wsPacote, `Pacote ${pacote.id}`);
+    });
+
+    // Gerar nome do arquivo
+    const dataHora = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const nomeArquivo = `${tipo}-${dataHora}.xlsx`;
+    
+    // Salvar o arquivo
+    XLSX.writeFile(wb, nomeArquivo);
+}
+
+// Botões de exportação para as seções
+function adicionarBotoesExportacao() {
+    // Botão para Meus Pacotes
+    const containerMeusPacotes = document.getElementById('listaPacotes');
+    if (containerMeusPacotes) {
+        const btnExportar = document.createElement('button');
+        btnExportar.className = 'btn btn-warning';
+        btnExportar.innerHTML = 'Exportar para Excel';
+        btnExportar.onclick = async function() {
+            const response = await fetch(`${API_URL}/pacotes-requisicao/meus-pacotes`);
+            const pacotes = await response.json();
+            exportarPacotesParaExcel(pacotes, 'meus-pacotes');
+        };
+        containerMeusPacotes.parentNode.insertBefore(btnExportar, containerMeusPacotes);
+    }
+
+    // Botão para Aprovar Pacotes (apenas para admin)
+    if (isUserAdmin()) {
+        const containerAprovarPacotes = document.getElementById('aprovarPacotes');
+        if (containerAprovarPacotes) {
+            const btnExportar = document.createElement('button');
+            btnExportar.className = 'btn btn-warning';
+            btnExportar.innerHTML = 'Exportar Pendentes para Excel';
+            btnExportar.onclick = async function() {
+                const response = await fetch(`${API_URL}/pacotes-requisicao/pendentes`);
+                const pacotes = await response.json();
+                exportarPacotesParaExcel(pacotes, 'pacotes-pendentes');
+            };
+            containerAprovarPacotes.insertBefore(btnExportar, containerAprovarPacotes.firstChild);
+        }
+    }
+}
+
 // Função para carregar dados do usuário logado
 function carregarDadosUsuario() {
     const userData = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
@@ -339,7 +409,7 @@ function verItensPacote(pacoteId) {
         .then(response => response.json())
         .then(itens => {
             const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
+            modal.className = 'modal';
             
             const modalContent = document.createElement('div');
             modalContent.className = 'modal-content';
@@ -442,10 +512,29 @@ function expandirPacote(pacoteId) {
         .then(itens => {
             // Criar modal para mostrar itens do pacote
             const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
+            modal.className = 'modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            `;
             
             const modalContent = document.createElement('div');
-            modalContent.className = 'modal-content-large';
+            modalContent.style.cssText = `
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                max-width: 800px;
+                max-height: 80vh;
+                overflow-y: auto;
+            `;
             
             let itensHtml = `
                 <h3>Itens do Pacote</h3>
@@ -710,9 +799,10 @@ function adicionarBotaoLogout() {
     }
     
     const logoutButton = document.createElement('button');
-    logoutButton.className = 'btn-logout-dynamic';
+    logoutButton.className = 'btn btn-logout';
     logoutButton.textContent = 'Sair';
     logoutButton.onclick = logout;
+    logoutButton.className += ' btn-logout';
     
     document.body.appendChild(logoutButton);
 }
@@ -1076,10 +1166,11 @@ async function gerarRelatorioPacote(pacoteId) {
         
         // Criar modal com relatório detalhado
         const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
+        modal.className = 'modal';
+        modal.style.display = 'block';
         
         modal.innerHTML = `
-            <div class="modal-content-large">
+            <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
                 <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
                 <h3>Relatório Detalhado - Pacote #${pacote.id}</h3>
                 
@@ -1178,10 +1269,11 @@ async function editarPacote(pacoteId) {
         
         // Criar modal para editar quantidades
         const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
+        modal.className = 'modal';
+        modal.style.display = 'block';
         
         modal.innerHTML = `
-            <div class="modal-content-large">
+            <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
                 <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
                 <h3>Editar Quantidades - Pacote #${pacote.id}</h3>
                 
@@ -1350,7 +1442,7 @@ async function exportarRelatorioPacote(pacoteId) {
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
-        a.classList.add('hidden');
+        a.style.display = 'none';
         
         document.body.appendChild(a);
         a.click();
@@ -1406,11 +1498,7 @@ function filtrarMeusPacotes() {
             mostrar = false;
         }
         
-                    if (mostrar) {
-                pacote.classList.remove('hidden');
-            } else {
-                pacote.classList.add('hidden');
-            }
+        pacote.style.display = mostrar ? '' : 'none';
     });
 }
 
@@ -1423,6 +1511,6 @@ function limparFiltrosMeusPacotes() {
     // Mostrar todos os pacotes
     const pacotes = document.querySelectorAll('.pacote-card');
     pacotes.forEach(pacote => {
-        pacote.classList.remove('hidden');
+        pacote.style.display = '';
     });
 }

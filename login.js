@@ -22,7 +22,7 @@ function showLoading(show = true) {
     const loading = document.getElementById('loadingScreen');
     const forms = document.querySelectorAll('.form-container');
     if (show) {
-        forms.forEach(form => form.classList.add('hidden'));
+        forms.forEach(form => form.style.display = 'none');
         loading.classList.add('show');
     } else {
         loading.classList.remove('show');
@@ -31,15 +31,15 @@ function showLoading(show = true) {
 
 // Alternar entre login e cadastro
 function showLogin() {
-    document.getElementById('loginForm').classList.remove('hidden');
-    document.getElementById('registerForm').classList.add('hidden');
+    document.getElementById('loginForm').style.display = 'block';
+    document.getElementById('registerForm').style.display = 'none';
     document.getElementById('userInfo').classList.remove('show');
     clearAlerts();
 }
 
 function showRegister() {
-    document.getElementById('loginForm').classList.add('hidden');
-    document.getElementById('registerForm').classList.remove('hidden');
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('registerForm').style.display = 'block';
     document.getElementById('userInfo').classList.remove('show');
     clearAlerts();
 }
@@ -209,8 +209,8 @@ if (document.getElementById('registerFormElement')) {
 function showUserInfo() {
     const userInfo = document.getElementById('userInfo');
     const userDetails = document.getElementById('userDetails');
-                document.getElementById('loginForm').classList.add('hidden');
-            document.getElementById('registerForm').classList.add('hidden');
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('registerForm').style.display = 'none';
     userDetails.innerHTML = `
         <h3>${currentUser.name}</h3>
         <p><strong>Email:</strong> ${currentUser.email}</p>
@@ -255,6 +255,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Esconde o botão "Voltar ao Estoque" para usuários comuns
     const btnVoltar = document.querySelector('.btn-voltar-estoque');
     if (btnVoltar && currentUser && currentUser.userType !== 'admin') {
-                    btnVoltar.classList.add('hidden');
+        btnVoltar.style.display = 'none';
     }
 });

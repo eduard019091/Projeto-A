@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="main.css">
+    <link rel="stylesheet" href="requisi.css">
     <link rel="icon" type="image/png" href="andritzlogo2.png">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <title>Sistema de Requisições</title>
 </head>
 <body>
@@ -26,7 +28,7 @@
 
         <!-- Seção Novo Pacote -->
         <div id="novoPacote" class="content section active">
-            <h2>Criar Novo Pacote de Requisição</h2>
+            <h2>Criar Nova Requisição</h2>
             <form id="pacoteForm">
                 <div class="form-row">
                     <div class="form-group">
@@ -121,12 +123,12 @@
     <!-- Container já existe acima, removendo duplicação -->
 
         <!-- Indicador de loading -->
-        <div id="loading" class="loading hidden">
+        <div id="loading" class="loading" style="display: none;">
             <p>Carregando dados do usuário...</p>
         </div>
 
         <!-- Mensagem de acesso negado -->
-        <div id="accessDenied" class="access-denied hidden">
+        <div id="accessDenied" class="access-denied" style="display: none;">
             <h2>Acesso Negado</h2>
             <p>Você não tem permissão para acessar esta página.</p>
             <button class="btn" onclick="window.location.href='login.html'">Voltar ao Login</button>
@@ -251,11 +253,7 @@
             // Mostrar/ocultar botão "Voltar ao Estoque" para usuários não-admin
             const btnVoltar = document.getElementById('btnVoltarEstoque');
             if (btnVoltar) {
-                if (isAdmin) {
-                    btnVoltar.classList.remove('hidden');
-                } else {
-                    btnVoltar.classList.add('hidden');
-                }
+                btnVoltar.style.display = isAdmin ? 'block' : 'none';
                 btnVoltar.onclick = function() {
                     window.location.href = 'index.html';
                 };
@@ -264,11 +262,7 @@
             // Mostrar/ocultar seção de aprovar requisições baseado no tipo de usuário
             const adminButtons = document.querySelectorAll('.admin-only');
             adminButtons.forEach(button => {
-                if (isAdmin) {
-                    button.classList.remove('hidden');
-                } else {
-                    button.classList.add('hidden');
-                }
+                button.style.display = isAdmin ? 'block' : 'none';
             });
         }
 
@@ -277,8 +271,8 @@
             const userData = JSON.parse(localStorage.getItem('userData') || '{}');
             
             if (!userData.id) {
-                document.getElementById('accessDenied').classList.remove('hidden');
-                document.querySelector('.container').classList.add('hidden');
+                document.getElementById('accessDenied').style.display = 'block';
+                document.querySelector('.container').style.display = 'none';
                 return false;
             }
             
@@ -340,10 +334,10 @@
         // Função para inicializar o sistema
         function inicializarSistema() {
             // Mostrar loading
-            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('loading').style.display = 'block';
             // Verificar se o usuário está logado e carregar dados
             if (!carregarDadosUsuario()) {
-                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('loading').style.display = 'none';
                 return;
             }
             // Configurar interface baseada no tipo de usuário
@@ -351,7 +345,7 @@
             // Adicionar botão de logout
             adicionarBotaoLogout();
             // Ocultar loading
-            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('loading').style.display = 'none';
             // Proteger acesso ao estoque - apenas verificar se estamos na página index.html
             let userData = {};
             try {
