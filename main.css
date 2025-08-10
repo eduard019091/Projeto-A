@@ -903,6 +903,21 @@ body {
     justify-content: center;
 }
 
+/* Ensure body doesn't scroll when modal is open */
+body.modal-open {
+    overflow: hidden;
+}
+
+/* Hide static modals by default; dynamic overlays remain visible */
+.modal {
+    display: none;
+}
+
+/* Allow toggling visibility via classes */
+.modal.show, .modal.active {
+    display: flex;
+}
+
 .modal-content, .modal-content-large {
     background: white;
     border-radius: 12px;

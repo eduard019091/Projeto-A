@@ -320,7 +320,11 @@ function verItensPacote(pacoteId) {
             modalContent.className = 'modal-content';
             
             let itensHtml = `
-                <h3>Itens do Pacote</h3>
+                <div class="modal-header">
+                    <h3>Itens do Pacote</h3>
+                    <button class="close" onclick="fecharModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="table-container">
                 <table class="table">
                     <thead>
                         <tr>
@@ -345,6 +349,7 @@ function verItensPacote(pacoteId) {
             itensHtml += `
                     </tbody>
                 </table>
+                </div>
                 <div style="margin-top: 20px; text-align: right;">
                     <button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>
                 </div>
@@ -485,6 +490,7 @@ function expandirPacote(pacoteId) {
             itensHtml += `
                     </tbody>
                 </table>
+                </div>
                 <div style="margin-top: 20px; text-align: right;">
                     <button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>
                     <button class="btn btn-danger" onclick="negarItensSelecionados(${pacoteId})">Negar Selecionados</button>
@@ -1094,8 +1100,10 @@ async function gerarRelatorioPacote(pacoteId) {
         
         modal.innerHTML = `
             <div class="modal-content-large">
-                <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
-                <h3>Relatório Detalhado - Pacote #${pacote.id}</h3>
+                <div class="modal-header">
+                    <h3>Relatório Detalhado - Pacote #${pacote.id}</h3>
+                    <button class="close" onclick="fecharModal()"><i class="fas fa-times"></i></button>
+                </div>
                 
                 <div class="relatorio-detalhado">
                     <div class="relatorio-header">
@@ -1196,8 +1204,10 @@ async function editarPacote(pacoteId) {
         
         modal.innerHTML = `
             <div class="modal-content-large">
-                <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
-                <h3>Editar Quantidades - Pacote #${pacote.id}</h3>
+                <div class="modal-header">
+                    <h3>Editar Quantidades - Pacote #${pacote.id}</h3>
+                    <button class="close" onclick="fecharModal()"><i class="fas fa-times"></i></button>
+                </div>
                 
                 <div class="relatorio-detalhado">
                     <div class="relatorio-header">
@@ -1274,7 +1284,7 @@ async function editarPacote(pacoteId) {
                     
                     <div style="margin-top: 20px; text-align: center;">
                         <button type="submit" class="btn btn-success">Salvar Alterações</button>
-                        <button type="button" class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">Cancelar</button>
+                        <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
                     </div>
                 </form>
             </div>

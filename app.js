@@ -313,12 +313,14 @@ function abrirModalEstoque(itemId) {
     const modal = document.getElementById('modalEstoque');
     modal.style.display = 'flex';
     modal.classList.add('show');
+    document.body.classList.add('modal-open');
 }
 
 function fecharModal() {
     const modal = document.getElementById('modalEstoque');
     modal.style.display = 'none';
     modal.classList.remove('show');
+    document.body.classList.remove('modal-open');
     document.getElementById('adicionarEstoqueForm').reset();
 }
 
@@ -793,12 +795,14 @@ function abrirModalEditarItem(itemId) {
     const modal = document.getElementById('modalEditarItem');
     modal.style.display = 'flex';
     modal.classList.add('show');
+    document.body.classList.add('modal-open');
 }
 
 function fecharModalEditarItem() {
     const modal = document.getElementById('modalEditarItem');
     modal.style.display = 'none';
     modal.classList.remove('show');
+    document.body.classList.remove('modal-open');
     document.getElementById('editarItemForm').reset();
 }
 // Salvar edição do item
