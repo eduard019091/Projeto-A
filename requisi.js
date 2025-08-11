@@ -294,7 +294,7 @@ function carregarMeusPacotes() {
                             Ver Itens
                         </button>
                         ${pacote.status === 'aprovado' || pacote.status === 'rejeitado' || pacote.status === 'parcialmente aprovado' ? 
-                            `<button class="btn btn-primary btn-sm" onclick="exportarRelatorioPacote(${pacote.id})">Exportar CSV</button>` : 
+                            `<button class="btn btn-primary btn-sm" onclick="exportarRelatorioPacote(${pacote.id})">Exportar XLSX</button>` : 
                             ''
                         }
                     </div>
@@ -365,61 +365,62 @@ function carregarRequisicoesPendentes() {
     fetch(`${API_URL}/pacotes/pendentes`)
         .then(response => response.json())
         .then(pacotes => {
-            const tabela = document.getElementById('tabelaAprovarRequisicoes').getElementsByTagName('tbody')[0];
-            tabela.innerHTML = '';
-            
+            const container = document.getElementById('cardsAprovarRequisicoes');
+            if (!container) return;
+            container.innerHTML = '';
             if (pacotes.length === 0) {
-                tabela.innerHTML = '<tr><td colspan="8" style="text-align: center;">Nenhum pacote pendente encontrado</td></tr>';
+                container.innerHTML = '<p style="text-align:center;">Nenhum pacote pendente encontrado.</p>';
                 return;
             }
-            
-            // Adicionar pacotes como itens únicos
             pacotes.forEach(pacote => {
-                const tr = document.createElement('tr');
-                tr.className = 'pacote-row';
-                tr.setAttribute('data-pacote-id', pacote.id);
-                tr.innerHTML = `
-                    <td>${new Date(pacote.data_criacao).toLocaleDateString()}</td>
-                    <td>${pacote.usuario_nome}</td>
-                    <td>
-                        <strong>📦 PACOTE #${pacote.id}</strong><br>
-                        <small>${pacote.total_itens} itens • ${pacote.total_quantidade} unidades</small>
-                        <br><small>Projeto: ${pacote.projeto}</small>
-                    </td>
-                    <td>${pacote.total_quantidade}</td>
-                    <td>${pacote.centroCusto}</td>
-                    <td>${pacote.projeto}</td>
-                    <td>${pacote.justificativa}</td>
-                    <td>
-                        <div class="dropdown">
-                            <button class="btn btn-primary btn-sm dropdown-toggle" onclick="toggleDropdown(${pacote.id})">
-                                Ações
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
-                            <div id="dropdown-${pacote.id}" class="dropdown-menu">
-                                <a href="#" onclick="expandirPacote(${pacote.id}); return false;">
-                                    <i class="fas fa-eye"></i> Ver Itens
-                                </a>
-                                <a href="#" onclick="aprovarPacoteCompleto(${pacote.id}); return false;">
-                                    <i class="fas fa-check"></i> Aprovar Tudo
-                                </a>
-                                <a href="#" onclick="editarPacote(${pacote.id}); return false;">
-                                    <i class="fas fa-edit"></i> Editar Pacote
-                                </a>
-                                <a href="#" onclick="rejeitarPacoteCompleto(${pacote.id}); return false;">
-                                    <i class="fas fa-times"></i> Rejeitar
-                                </a>
-                                <a href="#" onclick="gerarRelatorioPacote(${pacote.id}); return false;">
-                                    <i class="fas fa-file-alt"></i> Relatório
-                                </a>
-                                <a href="#" onclick="exportarRelatorioPacote(${pacote.id}); return false;">
-                                    <i class="fas fa-file-export"></i> Exportar CSV
-                                </a>
+                const card = document.createElement('div');
+                card.className = 'requisicao-card';
+                card.innerHTML = `
+                    <div class="requisicao-header">
+                        <div class="requisicao-title">
+                            <div class="requisicao-icon"><i class="fas fa-box"></i></div>
+                            <div class="requisicao-info">
+                                <span class="requisicao-id">PACOTE #${pacote.id}</span>
+                                <span class="requisicao-date">${new Date(pacote.data_criacao).toLocaleDateString()}</span>
                             </div>
                         </div>
-                    </td>
+                        <span class="status-tag pendente"><i class="fas fa-clock"></i> Pendente</span>
+                    </div>
+                    <div class="requisicao-content">
+                        <div class="requisicao-grid">
+                            <div class="info-group">
+                                <span class="info-label">Solicitante</span>
+                                <span class="info-value">${pacote.usuario_nome}</span>
+                            </div>
+                            <div class="info-group">
+                                <span class="info-label">Centro de Custo</span>
+                                <span class="info-value">${pacote.centroCusto}</span>
+                            </div>
+                            <div class="info-group">
+                                <span class="info-label">Projeto</span>
+                                <span class="info-value">${pacote.projeto}</span>
+                            </div>
+                            <div class="info-group">
+                                <span class="info-label">Total de Itens</span>
+                                <span class="info-value">${pacote.total_itens} itens</span>
+                            </div>
+                            <div class="info-group">
+                                <span class="info-label">Total de Unidades</span>
+                                <span class="info-value">${pacote.total_quantidade}</span>
+                            </div>
+                            <div class="info-group">
+                                <span class="info-label">Justificativa</span>
+                                <span class="info-value">${pacote.justificativa}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="requisicao-footer">
+                        <button class="btn-actions" onclick="abrirModalAcoes(${pacote.id})">
+                            Ações <i class="fas fa-cogs"></i>
+                        </button>
+                    </div>
                 `;
-                tabela.appendChild(tr);
+                container.appendChild(card);
             });
         })
         .catch(error => {
@@ -1337,49 +1338,39 @@ async function editarPacote(pacoteId) {
 // Função para exportar relatório de pacote em CSV
 async function exportarRelatorioPacote(pacoteId) {
     try {
-        console.log('Exportando relatório CSV para pacote:', pacoteId);
-        
-        // Fazer download do arquivo CSV
-        const response = await fetch(`${API_URL}/pacotes/${pacoteId}/exportar-csv`);
-        
+        console.log('Exportando relatório XLSX para pacote:', pacoteId);
+        // Fazer download do arquivo XLSX
+        const response = await fetch(`${API_URL}/pacotes/${pacoteId}/exportar-xlsx`);
         if (!response.ok) {
-            throw new Error('Erro ao exportar relatório CSV');
+            throw new Error('Erro ao exportar relatório XLSX');
         }
-        
         // Obter o nome do arquivo do header Content-Disposition
         const contentDisposition = response.headers.get('Content-Disposition');
-        let filename = `relatorio-pacote-${pacoteId}.csv`;
-        
+        let filename = `relatorio-pacote-${pacoteId}.xlsx`;
         if (contentDisposition) {
             const filenameMatch = contentDisposition.match(/filename="(.+)"/);
             if (filenameMatch) {
                 filename = filenameMatch[1];
             }
         }
-        
         // Criar blob e link para download
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-        
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
         a.classList.add('hidden');
-        
         document.body.appendChild(a);
         a.click();
-        
         // Limpar após download
         setTimeout(() => {
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
         }, 100);
-        
-        console.log('Relatório CSV exportado com sucesso');
-        
+        console.log('Relatório XLSX exportado com sucesso');
     } catch (error) {
-        console.error('Erro ao exportar relatório CSV:', error);
-        alert('Erro ao exportar relatório CSV: ' + error.message);
+        console.error('Erro ao exportar relatório XLSX:', error);
+        alert('Erro ao exportar relatório XLSX: ' + error.message);
     }
 }
 
@@ -1388,43 +1379,66 @@ function filtrarMeusPacotes() {
     const filtroStatus = document.getElementById('filtroStatusMeusPacotes').value;
     const filtroData = document.getElementById('filtroDataMeusPacotes').value;
     const pesquisa = document.getElementById('pesquisaMeusPacotes').value.toLowerCase();
-    
+
     const pacotes = document.querySelectorAll('.pacote-card');
-    
+
     pacotes.forEach(pacote => {
+        // Extrair status
         const statusElement = pacote.querySelector('.status-aprovado, .status-rejeitado, .status-pendente, .status-parcialmente-aprovado');
-        const status = statusElement ? statusElement.textContent.toLowerCase() : '';
-        const projeto = pacote.querySelector('p:contains("Projeto:")')?.textContent.toLowerCase() || '';
-        const centroCusto = pacote.querySelector('p:contains("Centro de Custo:")')?.textContent.toLowerCase() || '';
-        const dataElement = pacote.querySelector('p:contains("Data:")');
-        const data = dataElement ? dataElement.textContent.split(':')[1]?.trim() : '';
-        
+        const status = statusElement ? statusElement.textContent.trim().toLowerCase() : '';
+
+        // Extrair projeto e centro de custo
+        let projeto = '';
+        let centroCusto = '';
+        const pTags = pacote.querySelectorAll('p');
+        pTags.forEach(p => {
+            if (p.textContent.toLowerCase().includes('projeto:')) {
+                projeto = p.textContent.replace('Projeto:', '').trim().toLowerCase();
+            }
+            if (p.textContent.toLowerCase().includes('centro de custo:')) {
+                centroCusto = p.textContent.replace('Centro de Custo:', '').trim().toLowerCase();
+            }
+        });
+
+        // Extrair data
+        let data = '';
+        pTags.forEach(p => {
+            if (p.textContent.toLowerCase().includes('data:')) {
+                data = p.textContent.split(':')[1]?.trim();
+            }
+        });
+
         let mostrar = true;
-        
+
         // Filtro por status
         if (filtroStatus && status !== filtroStatus.toLowerCase()) {
             mostrar = false;
         }
-        
+
         // Filtro por data
         if (filtroData && data) {
-            const dataPacote = new Date(data.split('/').reverse().join('-'));
-            const dataFiltro = new Date(filtroData);
-            if (dataPacote.toDateString() !== dataFiltro.toDateString()) {
+            // data formato dd/mm/yyyy ou yyyy-mm-dd
+            let dataPacote = data;
+            if (data.includes('/')) {
+                const [dia, mes, ano] = data.split('/');
+                dataPacote = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+            }
+            const dataFiltro = filtroData;
+            if (dataPacote !== dataFiltro) {
                 mostrar = false;
             }
         }
-        
+
         // Filtro por pesquisa
         if (pesquisa && !centroCusto.includes(pesquisa) && !projeto.includes(pesquisa)) {
             mostrar = false;
         }
-        
-                    if (mostrar) {
-                pacote.classList.remove('hidden');
-            } else {
-                pacote.classList.add('hidden');
-            }
+
+        if (mostrar) {
+            pacote.classList.remove('hidden');
+        } else {
+            pacote.classList.add('hidden');
+        }
     });
 }
 
@@ -1464,22 +1478,151 @@ function initializeSidebar() {
     });
 }
 
-// Function to toggle dropdown menu
-function toggleDropdown(pacoteId) {
-    const dropdown = document.getElementById(`dropdown-${pacoteId}`);
-    // Close all other dropdowns first
-    document.querySelectorAll('.dropdown-menu').forEach(menu => {
-        if (menu.id !== `dropdown-${pacoteId}`) {
-            menu.classList.remove('show');
+
+// Função para abrir modal de ações do pacote
+// Função para abrir modal de ações do pacote - CORRIGIDA
+function abrirModalAcoes(pacoteId) {
+    // Remove qualquer modal de ações já aberto
+    document.querySelectorAll('.modal-overlay.modal-acoes').forEach(m => m.remove());
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay modal-acoes';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="fecharModalAcoes()">&times;</span>
+            <h3>Ações do Pacote #${pacoteId}</h3>
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem;">
+                <button class="btn btn-secondary" onclick="expandirPacote(${pacoteId}); fecharModalAcoes();">
+                    <i class="fas fa-eye"></i> Ver Itens
+                </button>
+                <button class="btn btn-success" onclick="aprovarPacoteCompleto(${pacoteId}); fecharModalAcoes();">
+                    <i class="fas fa-check"></i> Aprovar Tudo
+                </button>
+                <button class="btn btn-warning" onclick="editarPacote(${pacoteId}); fecharModalAcoes();">
+                    <i class="fas fa-edit"></i> Editar Pacote
+                </button>
+                <button class="btn btn-danger" onclick="rejeitarPacoteCompleto(${pacoteId}); fecharModalAcoes();">
+                    <i class="fas fa-times"></i> Rejeitar
+                </button>
+                <button class="btn btn-info" onclick="gerarRelatorioPacote(${pacoteId}); fecharModalAcoes();">
+                    <i class="fas fa-file-alt"></i> Relatório
+                </button>
+                <button class="btn btn-primary" onclick="exportarRelatorioPacote(${pacoteId}); fecharModalAcoes();">
+                    <i class="fas fa-file-export"></i> Exportar XLSX
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+// Função auxiliar para fechar modal de ações
+function fecharModalAcoes() {
+    const modal = document.querySelector('.modal-overlay.modal-acoes');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Função para exportar relatório de pacote em XLSX - CORRIGIDA
+async function exportarRelatorioPacote(pacoteId) {
+    try {
+        console.log('Exportando relatório XLSX para pacote:', pacoteId);
+        
+        // Mostrar indicador de carregamento
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            text-align: center;
+        `;
+        loadingIndicator.innerHTML = `
+            <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i>
+            <div>Gerando arquivo XLSX...</div>
+        `;
+        document.body.appendChild(loadingIndicator);
+        
+        // Fazer download do arquivo XLSX
+        const response = await fetch(`${API_URL}/pacotes/${pacoteId}/exportar-xlsx`);
+        
+        // Remover indicador de carregamento
+        document.body.removeChild(loadingIndicator);
+        
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
         }
-    });
-    dropdown.classList.toggle('show');
-    
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function closeDropdown(e) {
-        if (!e.target.closest('.dropdown')) {
-            dropdown.classList.remove('show');
-            document.removeEventListener('click', closeDropdown);
+        
+        // Verificar se a resposta tem conteúdo
+        const contentLength = response.headers.get('content-length');
+        if (contentLength === '0' || contentLength === null) {
+            throw new Error('Arquivo vazio recebido do servidor');
         }
-    });
+        
+        // Obter o nome do arquivo do header Content-Disposition
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `relatorio-pacote-${pacoteId}.xlsx`;
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+            if (filenameMatch) {
+                filename = filenameMatch[1].replace(/['"]/g, '');
+            }
+        }
+        
+        // Criar blob e link para download
+        const blob = await response.blob();
+        
+        // Verificar se o blob tem conteúdo
+        if (blob.size === 0) {
+            throw new Error('Arquivo vazio gerado');
+        }
+        
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        
+        // Limpar após download
+        setTimeout(() => {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }, 100);
+        
+        console.log('Relatório XLSX exportado com sucesso:', filename);
+        
+        // Mostrar mensagem de sucesso
+        alert('Relatório XLSX exportado com sucesso!');
+        
+    } catch (error) {
+        console.error('Erro detalhado ao exportar relatório XLSX:', error);
+        
+        // Remover indicador de carregamento se ainda estiver presente
+        const loadingIndicator = document.querySelector('div[style*="position: fixed"]');
+        if (loadingIndicator) {
+            document.body.removeChild(loadingIndicator);
+        }
+        
+        // Mostrar erro mais específico
+        let errorMessage = 'Erro ao exportar relatório XLSX';
+        if (error.message.includes('404')) {
+            errorMessage = 'Endpoint de exportação não encontrado no servidor';
+        } else if (error.message.includes('500')) {
+            errorMessage = 'Erro interno do servidor ao gerar o arquivo';
+        } else if (error.message.includes('vazio')) {
+            errorMessage = 'Arquivo vazio - verifique se o pacote tem dados válidos';
+        } else {
+            errorMessage += ': ' + error.message;
+        }
+        
+        alert(errorMessage);
+    }
 }

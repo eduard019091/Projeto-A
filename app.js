@@ -419,12 +419,20 @@ document.getElementById('retiradaForm').addEventListener('submit', async functio
     const quantidade = parseInt(document.getElementById('quantidadeRetirada').value);
     const destino = document.getElementById('destinoRetirada').value;
     const observacao = document.getElementById('observacaoRetirada').value;
-    
+
+    // Pega usuário logado do sessionStorage
+    let currentUser = null;
+    try {
+        currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
+    } catch (e) {}
+
     try {
         await apiRequest(`/itens/${itemId}/retirar`, 'POST', {
             quantidade: quantidade,
             destino: destino,
-            observacao: observacao
+            observacao: observacao,
+            usuario_id: currentUser && currentUser.id ? currentUser.id : null,
+            usuario_nome: currentUser && currentUser.name ? currentUser.name : null
         });
         
         alert('Retirada realizada com sucesso!');
@@ -530,8 +538,13 @@ async function gerarRelatorioMovimentacao() {
         filtrosDiv.id = 'filtrosMovimentacao';
         filtrosDiv.innerHTML = `
             <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
-                <input type="text" id="pesquisaMovimentacao" placeholder="Pesquisar por nome, destino ou data" style="padding:4px;">
+                <input type="text" id="pesquisaMovimentacao" placeholder="Pesquisar por nome, destino, descrição ou data" style="padding:4px;">
                 <input type="number" id="filtroQtdMov" placeholder="Quantidade" min="1" style="width:100px;padding:4px;">
+                <select id="filtroTipoMov" style="padding:4px;min-width:120px;">
+                    <option value="">Todos os tipos</option>
+                    <option value="entrada">Entradas</option>
+                    <option value="saida">Saídas</option>
+                </select>
                 <select id="filtroUsuarioMov" style="padding:4px;min-width:150px;">
                     <option value="">Todos os usuários</option>
                 </select>
@@ -540,7 +553,6 @@ async function gerarRelatorioMovimentacao() {
             </div>
         `;
         document.getElementById('relatorioMovimentacao').parentNode.insertBefore(filtrosDiv, document.getElementById('relatorioMovimentacao'));
-        
         // Carregar lista de usuários
         carregarUsuariosParaFiltro();
     }
@@ -553,18 +565,30 @@ async function gerarRelatorioMovimentacao() {
         let pesquisa = document.getElementById('pesquisaMovimentacao').value.trim().toLowerCase();
         let qtdFiltro = document.getElementById('filtroQtdMov').value;
         let usuarioFiltro = document.getElementById('filtroUsuarioMov').value;
+        let tipoFiltro = document.getElementById('filtroTipoMov').value;
 
         let movFiltradas = movimentacoes.filter(mov => {
             let nomeMatch = mov.item_nome && mov.item_nome.toLowerCase().includes(pesquisa);
             let destinoMatch = mov.destino && mov.destino.toLowerCase().includes(pesquisa);
+            let origemMatch = mov.origem && mov.origem.toLowerCase().includes(pesquisa);
+            let descricaoMatch = mov.descricao && mov.descricao.toLowerCase().includes(pesquisa);
             let dataMov = mov.data ? new Date(mov.data) : null;
             let dataStr = dataMov ? dataMov.toLocaleDateString('pt-BR') : '';
             let dataMatch = dataStr.includes(pesquisa);
-            let pesquisaOk = !pesquisa || nomeMatch || destinoMatch || dataMatch;
+            let pesquisaOk = !pesquisa || nomeMatch || destinoMatch || origemMatch || descricaoMatch || dataMatch;
             let qtdOk = !qtdFiltro || mov.quantidade == qtdFiltro;
-            let usuarioOk = !usuarioFiltro || (mov.usuario_id && mov.usuario_id.toString() === usuarioFiltro);
-            return pesquisaOk && qtdOk && usuarioOk;
+            // Filtro por usuário: aceita tanto id quanto nome
+            let usuarioOk = true;
+            if (usuarioFiltro) {
+                usuarioOk = (mov.usuario_id && mov.usuario_id.toString() === usuarioFiltro) ||
+                            (mov.usuario_nome && mov.usuario_nome.toLowerCase().includes(usuarioFiltro.toLowerCase()));
+            }
+            let tipoOk = !tipoFiltro || mov.tipo === tipoFiltro;
+            return pesquisaOk && qtdOk && usuarioOk && tipoOk;
         });
+
+        // Ordenar por data decrescente
+        movFiltradas.sort((a, b) => new Date(b.data) - new Date(a.data));
 
         // Estatísticas do período
         const entradas = movFiltradas.filter(mov => mov.tipo === 'entrada');
@@ -600,9 +624,11 @@ async function gerarRelatorioMovimentacao() {
                                 <th>Data</th>
                                 <th>Item</th>
                                 <th>Tipo</th>
-                                <th>Quantidade</th>
-                                <th>Destino/Origem</th>
+                                <th>QTDE</th>
+                                <th>Projeto</th>
                                 <th>Centro de Custo</th>
+                                <th>Solicitante</th>
+                                <th>Aprovador</th>
                                 <th>Descrição</th>
                             </tr>
                         </thead>
@@ -613,11 +639,13 @@ async function gerarRelatorioMovimentacao() {
                 const hora = new Date(mov.data).toLocaleTimeString('pt-BR');
                 const tipoClass = mov.tipo === 'entrada' ? 'status-ideal' : 'status-baixo';
                 const tipoTexto = mov.tipo === 'entrada' ? 'Entrada' : 'Saída';
-                // Centro de custo: só mostrar se for retirada por requisição
                 let centroCusto = '-';
                 if (mov.descricao && mov.descricao.toLowerCase().includes('requisição')) {
                     centroCusto = mov.destino || '-';
                 }
+                // Exibir nome do solicitante e aprovador (se disponível)
+                const solicitante = mov.usuario_nome || mov.usuario || mov.nome_usuario || '-';
+                const aprovador = mov.aprovador_nome || mov.aprovador || mov.nome_aprovador || '-';
                 html += `
                     <tr>
                         <td>${data} ${hora}</td>
@@ -626,6 +654,8 @@ async function gerarRelatorioMovimentacao() {
                         <td>${mov.quantidade}</td>
                         <td>${mov.destino || mov.origem || '-'}</td>
                         <td>${centroCusto}</td>
+                        <td>${solicitante}</td>
+                        <td>${aprovador}</td>
                         <td>${mov.descricao || '-'}</td>
                     </tr>
                 `;
@@ -642,6 +672,8 @@ async function gerarRelatorioMovimentacao() {
         document.getElementById('btnLimparFiltroMov').onclick = function() {
             document.getElementById('pesquisaMovimentacao').value = '';
             document.getElementById('filtroQtdMov').value = '';
+            document.getElementById('filtroTipoMov').value = '';
+            document.getElementById('filtroUsuarioMov').value = '';
             gerarRelatorioMovimentacao();
         };
     } catch (error) {
@@ -928,8 +960,11 @@ window.exportarRelatorio = async function(tipo) {
                 'Data': sanitizar(new Date(mov.data).toLocaleString('pt-BR')),
                 'Item': sanitizar(mov.item_nome),
                 'Tipo': sanitizar(mov.tipo === 'entrada' ? 'Entrada' : 'Saída'),
-                'Quantidade': mov.quantidade,
-                'Destino/Origem': sanitizar(mov.destino || mov.origem || '-'),
+                'QTDE': mov.quantidade,
+                'Projeto': sanitizar(mov.destino || mov.origem || '-'),
+                'Centro de Custo': sanitizar(mov.centroCusto || '-'),
+                'Solicitante': sanitizar(mov.usuario_nome || mov.usuario || mov.nome_usuario || '-'),
+                'Aprovador': sanitizar(mov.aprovador_nome || mov.aprovador || mov.nome_aprovador || '-'),
                 'Descrição': sanitizar(mov.descricao || '-')
             }));
 
@@ -1565,16 +1600,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 // Função para carregar usuários para o filtro
 async function carregarUsuariosParaFiltro() {
     try {
-        const usuarios = await apiRequest('/usuarios');
+        const resp = await apiRequest('/usuarios');
+        const usuarios = resp && Array.isArray(resp.usuarios) ? resp.usuarios : (Array.isArray(resp) ? resp : []);
         const select = document.getElementById('filtroUsuarioMov');
         if (select) {
             // Manter a opção "Todos os usuários"
             select.innerHTML = '<option value="">Todos os usuários</option>';
-            
             usuarios.forEach(usuario => {
                 const option = document.createElement('option');
                 option.value = usuario.id;
-                option.textContent = usuario.name;
+                option.textContent = usuario.name + (usuario.email ? ` (${usuario.email})` : '');
                 select.appendChild(option);
             });
         }

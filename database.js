@@ -86,18 +86,41 @@
             }
         } else {
             console.log('Conectado ao banco de dados SQLite:', dbPath);
-            
+
             // Se o banco acabou de ser criado, será inicializado com as tabelas
             if (!dbExists) {
                 console.log('Inicializando novo banco de dados com estrutura padrão...');
             }
-            
+
             // Executar PRAGMA para verificar a saúde do banco de dados
             db.get("PRAGMA integrity_check", [], (err, result) => {
                 if (err) {
                     console.error("Erro ao verificar integridade do banco:", err.message);
                 } else {
                     console.log("Verificação de integridade:", result);
+                }
+            });
+
+            // MIGRAÇÃO: Adicionar colunas em movimentacoes se não existirem
+            db.all("PRAGMA table_info(movimentacoes)", [], (err, columns) => {
+                if (!err && columns) {
+                    const colNames = columns.map(col => col.name);
+                    const alterStmts = [];
+                    if (!colNames.includes('usuario_id')) alterStmts.push("ALTER TABLE movimentacoes ADD COLUMN usuario_id INTEGER");
+                    if (!colNames.includes('usuario_nome')) alterStmts.push("ALTER TABLE movimentacoes ADD COLUMN usuario_nome TEXT");
+                    if (!colNames.includes('aprovador_id')) alterStmts.push("ALTER TABLE movimentacoes ADD COLUMN aprovador_id INTEGER");
+                    if (!colNames.includes('aprovador_nome')) alterStmts.push("ALTER TABLE movimentacoes ADD COLUMN aprovador_nome TEXT");
+                    if (alterStmts.length > 0) {
+                        alterStmts.forEach(stmt => {
+                            db.run(stmt, err => {
+                                if (err) {
+                                    console.error('Erro ao migrar tabela movimentacoes:', err.message);
+                                } else {
+                                    console.log('Coluna adicionada em movimentacoes:', stmt);
+                                }
+                            });
+                        });
+                    }
                 }
             });
         }
@@ -158,6 +181,10 @@
                 quantidade INTEGER NOT NULL,
                 destino TEXT,
                 descricao TEXT,
+                usuario_id INTEGER,
+                usuario_nome TEXT,
+                aprovador_id INTEGER,
+                aprovador_nome TEXT,
                 data DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (item_id) REFERENCES itens (id)
             )
@@ -401,13 +428,20 @@
     function inserirMovimentacao(movimentacao) {
         return new Promise((resolve, reject) => {
             const sql = `
-                INSERT INTO movimentacoes (item_id, item_nome, tipo, quantidade, destino, descricao)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO movimentacoes (item_id, item_nome, tipo, quantidade, destino, descricao, usuario_id, usuario_nome, aprovador_id, aprovador_nome)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
-            
             db.run(sql, [
-                movimentacao.itemId, movimentacao.itemNome, movimentacao.tipo,
-                movimentacao.quantidade, movimentacao.destino, movimentacao.descricao
+                movimentacao.itemId,
+                movimentacao.itemNome,
+                movimentacao.tipo,
+                movimentacao.quantidade,
+                movimentacao.destino,
+                movimentacao.descricao,
+                movimentacao.usuario_id || null,
+                movimentacao.usuario_nome || null,
+                movimentacao.aprovador_id || null,
+                movimentacao.aprovador_nome || null
             ], function(err) {
                 if (err) {
                     reject(err);

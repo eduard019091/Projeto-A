@@ -31,15 +31,23 @@ function showLoading(show = true) {
 
 // Alternar entre login e cadastro
 function showLogin() {
-    document.getElementById('loginForm').classList.remove('hidden');
-    document.getElementById('registerForm').classList.add('hidden');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    loginForm.classList.add('active');
+    loginForm.classList.remove('hidden');
+    registerForm.classList.remove('active');
+    registerForm.classList.add('hidden');
     document.getElementById('userInfo').classList.remove('show');
     clearAlerts();
 }
 
 function showRegister() {
-    document.getElementById('loginForm').classList.add('hidden');
-    document.getElementById('registerForm').classList.remove('hidden');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    loginForm.classList.remove('active');
+    loginForm.classList.add('hidden');
+    registerForm.classList.add('active');
+    registerForm.classList.remove('hidden');
     document.getElementById('userInfo').classList.remove('show');
     clearAlerts();
 }
@@ -209,8 +217,8 @@ if (document.getElementById('registerFormElement')) {
 function showUserInfo() {
     const userInfo = document.getElementById('userInfo');
     const userDetails = document.getElementById('userDetails');
-                document.getElementById('loginForm').classList.add('hidden');
-            document.getElementById('registerForm').classList.add('hidden');
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('registerForm').classList.add('hidden');
     userDetails.innerHTML = `
         <h3>${currentUser.name}</h3>
         <p><strong>Email:</strong> ${currentUser.email}</p>
@@ -219,6 +227,16 @@ function showUserInfo() {
         </div>
     `;
     userInfo.classList.add('show');
+
+    // Controle do botão "Voltar ao Estoque"
+    const btnVoltar = document.querySelector('.btn-voltar-estoque');
+    if (btnVoltar) {
+        if (currentUser.userType === 'admin') {
+            btnVoltar.classList.remove('hidden');
+        } else {
+            btnVoltar.classList.add('hidden');
+        }
+    }
 }
 
 // Logout

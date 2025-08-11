@@ -1,7 +1,9 @@
+
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const db = require('./database');
+const ExcelJS = require('exceljs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -644,6 +646,7 @@ app.post('/api/itens/:id/retirar', async (req, res) => {
     try {
         const { id } = req.params;
         const { quantidade, destino, observacao } = req.body;
+        const { usuario_id, usuario_nome } = req.body;
 
         if (!quantidade || !destino) {
             return res.status(400).json({
@@ -683,7 +686,9 @@ app.post('/api/itens/:id/retirar', async (req, res) => {
                 tipo: 'saida',
                 quantidade: parseInt(quantidade),
                 destino: destino,
-                descricao: observacao || 'Retirada direta do estoque'
+                descricao: observacao || 'Retirada direta do estoque',
+                usuario_id: usuario_id || null,
+                usuario_nome: usuario_nome || null
             });
 
             await db.run('COMMIT');
@@ -1201,6 +1206,77 @@ app.get('/api/pacotes/:id/exportar-csv', async (req, res) => {
 
 // Rota para editar quantidades de itens do pacote (sem aprovar)
 app.post('/api/pacotes/:id/editar-quantidades', async (req, res) => {
+
+// Rota para exportar relatório de pacote em XLSX
+app.get('/api/pacotes/:id/exportar-xlsx', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const pacote = await db.buscarPacoteDetalhado(id);
+        if (!pacote) {
+            return res.status(404).json({
+                success: false,
+                message: 'Pacote não encontrado'
+            });
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Relatório do Pacote');
+
+        // Cabeçalho do pacote
+        sheet.addRow(['ID do Pacote', 'Status', 'Data de Criação', 'Data de Aprovação', 'Solicitante', 'Email do Solicitante', 'Centro de Custo', 'Projeto', 'Justificativa', 'Observações']);
+        sheet.addRow([
+            pacote.id,
+            pacote.status || '',
+            pacote.data_criacao || '',
+            pacote.data_aprovacao || '',
+            pacote.solicitante_nome || '',
+            pacote.solicitante_email || '',
+            pacote.centroCusto || '',
+            pacote.projeto || '',
+            pacote.justificativa || '',
+            pacote.observacoes || ''
+        ]);
+        sheet.addRow([]);
+
+        // Cabeçalho dos itens
+        sheet.addRow(['ID do Item', 'Nome do Item', 'Descrição do Item', 'Quantidade Solicitada', 'Quantidade Disponível', 'Status do Item', 'Observações']);
+        if (pacote.itens && pacote.itens.length > 0) {
+            pacote.itens.forEach(item => {
+                sheet.addRow([
+                    item.id,
+                    item.item_nome || '',
+                    item.item_descricao || '',
+                    item.quantidade || 0,
+                    item.estoque_disponivel || 0,
+                    item.status || '',
+                    item.observacoes || ''
+                ]);
+            });
+        }
+
+        // Ajustar largura das colunas
+        sheet.columns.forEach(column => {
+            let maxLength = 10;
+            column.eachCell({ includeEmpty: true }, cell => {
+                maxLength = Math.max(maxLength, (cell.value ? cell.value.toString().length : 0));
+            });
+            column.width = maxLength + 2;
+        });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="relatorio-pacote-${id}-${new Date().toISOString().split('T')[0]}.xlsx"`);
+
+    // Gerar buffer e enviar
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.send(Buffer.from(buffer));
+    } catch (error) {
+        console.error('Erro ao exportar relatório XLSX:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Erro ao exportar relatório XLSX'
+        });
+    }
+});
     try {
         const { id } = req.params;
         const { itensEditados } = req.body;
