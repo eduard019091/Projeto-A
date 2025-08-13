@@ -6,7 +6,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #73a5d8;
+    background: var(--bg-color, #73a5d8);
     color: #1a1a1a;
     line-height: 1.5;
     font-size: 14px;
@@ -19,9 +19,9 @@ body {
 
 .container {
     background: #ffffff;
-    border-radius: 6px;
-    border: 1px solid #e1e5e9;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border-radius: var(--border-radius, 6px);
+    border: 1px solid var(--border-color, #e1e5e9);
+    box-shadow: var(--shadow, 0 1px 3px rgba(0,0,0,0.05));
     overflow-x: hidden;
     overflow-y: auto;
     width: 100%;
@@ -97,8 +97,8 @@ body {
 
 .form-group input:focus {
     outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .form-group input:hover {
@@ -146,7 +146,7 @@ body {
 .btn {
     width: 100%;
     padding: 8px 16px;
-    background: #2563eb;
+    background: #3b82f6;
     color: white;
     border: none;
     border-radius: 4px;
@@ -158,7 +158,7 @@ body {
 }
 
 .btn:hover {
-    background: #1d4ed8;
+    background: #2563eb;
 }
 
 .btn:active {
@@ -221,7 +221,7 @@ body {
 .alert-info {
     background: #dbeafe;
     color: #1e40af;
-    border-left-color: #2563eb;
+    border-left-color: #3b82f6;
     border: 1px solid #93c5fd;
 }
 
@@ -333,7 +333,7 @@ body {
     width: 70%;
 }
 
-
+.hidden { display: none !important; }
 
 @media (max-width: 480px) {
     .container {

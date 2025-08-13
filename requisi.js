@@ -321,15 +321,16 @@ function verItensPacote(pacoteId) {
             
             let itensHtml = `
                 <h3>Itens do Pacote</h3>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th>Quantidade</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <div class="table-container">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Quantidade</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
             `;
             
             itens.forEach(item => {
@@ -343,9 +344,10 @@ function verItensPacote(pacoteId) {
             });
             
             itensHtml += `
-                    </tbody>
-                </table>
-                <div style="margin-top: 20px; text-align: right;">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="form-actions">
                     <button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>
                 </div>
             `;
@@ -445,17 +447,18 @@ function expandirPacote(pacoteId) {
             
             let itensHtml = `
                 <h3>Itens do Pacote</h3>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
-                            <th>Item</th>
-                            <th>Quantidade</th>
-                            <th>Estoque Disponível</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <div class="table-container">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                                <th>Item</th>
+                                <th>Quantidade</th>
+                                <th>Estoque Disponível</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
             `;
             
             itens.forEach(item => {
@@ -484,12 +487,13 @@ function expandirPacote(pacoteId) {
             });
             
             itensHtml += `
-                    </tbody>
-                </table>
-                <div style="margin-top: 20px; text-align: right;">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="form-actions">
                     <button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>
                     <button class="btn btn-danger" onclick="negarItensSelecionados(${pacoteId})">Negar Selecionados</button>
-                    <button class="btn btn-success" onclick="aprovarItensSelecionados(${pacoteId})">Aprovar Selecionados</button>
+                    <button class="btn btn-primary" onclick="aprovarItensSelecionados(${pacoteId})">Aprovar Selecionados</button>
                 </div>
             `;
             
