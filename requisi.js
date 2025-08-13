@@ -538,7 +538,7 @@ function aprovarItensSelecionados(pacoteId) {
     fetch(`${API_URL}/pacotes/${pacoteId}/aprovar-itens`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemIds })
+        body: JSON.stringify({ itemIds, aprovador_id: (JSON.parse(sessionStorage.getItem('currentUser')||'{}').id || null), aprovador_nome: (JSON.parse(sessionStorage.getItem('currentUser')||'{}').name || null) })
     })
     .then(response => response.json())
     .then(data => {
@@ -597,7 +597,8 @@ function aprovarPacoteCompleto(pacoteId) {
     
     fetch(`${API_URL}/pacotes/${pacoteId}/aprovar`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aprovador_id: (JSON.parse(sessionStorage.getItem('currentUser')||'{}').id || null), aprovador_nome: (JSON.parse(sessionStorage.getItem('currentUser')||'{}').name || null) })
     })
     .then(response => response.json())
     .then(data => {
@@ -1322,8 +1323,23 @@ async function editarPacote(pacoteId) {
                 const result = await response.json();
                 if (result.success) {
                     alert('Quantidades editadas com sucesso!');
-                    modal.remove();
-                    carregarRequisicoesPendentes();
+                    // Após editar, permitir aprovar com quantidade personalizada
+                    const itensAprovados = itensEditados.map(it => ({ item_id: it.item_id, quantidade_aprovada: it.nova_quantidade }));
+                    const user = JSON.parse(sessionStorage.getItem('currentUser')||'{}');
+                    const respAprovar = await fetch(`${API_URL}/pacotes/${pacoteId}/aprovar-itens-quantidade`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ itensAprovados, aprovador_id: user.id || null, aprovador_nome: user.name || null })
+                    });
+                    const dataAprovar = await respAprovar.json();
+                    if (dataAprovar && dataAprovar.success) {
+                        alert('Itens aprovados com as novas quantidades!');
+                        document.querySelector('.modal-overlay')?.remove();
+                        carregarRequisicoesPendentes();
+                        carregarMeusPacotes();
+                    } else {
+                        alert('Erro ao aprovar itens com quantidade personalizada');
+                    }
                 } else {
                     alert(result.message || 'Erro ao editar quantidades');
                 }

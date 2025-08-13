@@ -372,7 +372,8 @@ app.get('/api/pacotes/usuario/:userId', async (req, res) => {
 app.post('/api/pacotes/:id/aprovar', async (req, res) => {
     try {
         const { id } = req.params;
-        await db.aprovarPacoteCompleto(id);
+        const { aprovador_id, aprovador_nome } = req.body || {};
+        await db.aprovarPacoteCompleto(id, { aprovador_id, aprovador_nome });
         res.json({
             success: true,
             message: 'Pacote aprovado com sucesso'
@@ -390,7 +391,7 @@ app.post('/api/pacotes/:id/aprovar', async (req, res) => {
 app.post('/api/pacotes/:id/aprovar-itens', async (req, res) => {
     try {
         const { id } = req.params;
-        const { itemIds } = req.body;
+        const { itemIds, aprovador_id, aprovador_nome } = req.body;
         
         if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
             return res.status(400).json({
@@ -399,7 +400,7 @@ app.post('/api/pacotes/:id/aprovar-itens', async (req, res) => {
             });
         }
 
-        await db.aprovarItensPacote(id, itemIds);
+        await db.aprovarItensPacote(id, itemIds, { aprovador_id, aprovador_nome });
         res.json({
             success: true,
             message: 'Itens aprovados com sucesso'
@@ -1307,7 +1308,7 @@ app.get('/api/pacotes/:id/exportar-xlsx', async (req, res) => {
 app.post('/api/pacotes/:id/aprovar-itens-quantidade', async (req, res) => {
     try {
         const { id } = req.params;
-        const { itensAprovados } = req.body;
+        const { itensAprovados, aprovador_id, aprovador_nome } = req.body;
         
         if (!itensAprovados || !Array.isArray(itensAprovados)) {
             return res.status(400).json({
@@ -1316,7 +1317,7 @@ app.post('/api/pacotes/:id/aprovar-itens-quantidade', async (req, res) => {
             });
         }
 
-        await db.aprovarItensPacoteComQuantidade(id, itensAprovados);
+        await db.aprovarItensPacoteComQuantidade(id, itensAprovados, { aprovador_id, aprovador_nome });
         
         res.json({
             success: true,

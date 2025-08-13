@@ -123,6 +123,27 @@
                     }
                 }
             });
+
+            // MIGRAÇÃO: Adicionar colunas em pacotes_requisicao se não existirem
+            db.all("PRAGMA table_info(pacotes_requisicao)", [], (err, columns) => {
+                if (!err && columns) {
+                    const colNames = columns.map(col => col.name);
+                    const alterStmts = [];
+                    if (!colNames.includes('aprovador_id')) alterStmts.push("ALTER TABLE pacotes_requisicao ADD COLUMN aprovador_id INTEGER");
+                    if (!colNames.includes('aprovador_nome')) alterStmts.push("ALTER TABLE pacotes_requisicao ADD COLUMN aprovador_nome TEXT");
+                    if (alterStmts.length > 0) {
+                        alterStmts.forEach(stmt => {
+                            db.run(stmt, err => {
+                                if (err) {
+                                    console.error('Erro ao migrar tabela pacotes_requisicao:', err.message);
+                                } else {
+                                    console.log('Coluna adicionada em pacotes_requisicao:', stmt);
+                                }
+                            });
+                        });
+                    }
+                }
+            });
         }
     });
 
@@ -221,6 +242,8 @@
                 data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,
                 data_aprovacao DATETIME,
                 observacoes TEXT,
+                aprovador_id INTEGER,
+                aprovador_nome TEXT,
                 FOREIGN KEY (userId) REFERENCES usuarios(id)
             )
         `);
@@ -637,13 +660,13 @@
                 await run(`
                     INSERT INTO pacotes_requisicao (
                         id, userId, centroCusto, projeto, justificativa, 
-                        status, data_criacao, data_aprovacao, observacoes
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        status, data_criacao, data_aprovacao, observacoes, aprovador_id, aprovador_nome
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `, [
                     pacote.id, pacote.userId, pacote.centroCusto,
                     pacote.projeto, pacote.justificativa, pacote.status,
                     pacote.data_criacao, pacote.data_aprovacao,
-                    pacote.observacoes
+                    pacote.observacoes, pacote.aprovador_id, pacote.aprovador_nome
                 ]);
             }
             
@@ -667,11 +690,12 @@
                 await run(`
                     INSERT INTO movimentacoes (
                         id, item_id, item_nome, tipo, quantidade,
-                        destino, descricao, data
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        destino, descricao, data, usuario_id, usuario_nome, aprovador_id, aprovador_nome
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `, [
                     mov.id, mov.item_id, mov.item_nome, mov.tipo,
-                    mov.quantidade, mov.destino, mov.descricao, mov.data
+                    mov.quantidade, mov.destino, mov.descricao, mov.data,
+                    mov.usuario_id, mov.usuario_nome, mov.aprovador_id, mov.aprovador_nome
                 ]);
             }
             
@@ -879,7 +903,7 @@
     }
 
     // Função para aprovar pacote completo
-    function aprovarPacoteCompleto(pacoteId) {
+    function aprovarPacoteCompleto(pacoteId, aprovador) {
         return new Promise(async (resolve, reject) => {
             try {
                 await run('BEGIN TRANSACTION');
@@ -895,6 +919,14 @@
                 if (!pacote) {
                     throw new Error('Pacote não encontrado');
                 }
+                
+                // Buscar nome do solicitante (criador do pacote)
+                const solicitante = await new Promise((resolve, reject) => {
+                    db.get('SELECT name FROM usuarios WHERE id = ?', [pacote.userId], (err, row) => {
+                        if (err) reject(err);
+                        else resolve(row);
+                    });
+                });
                 
                 // Buscar todas as requisições do pacote
                 const requisicoes = await buscarItensPacote(pacoteId);
@@ -918,14 +950,18 @@
                         tipo: 'saida',
                         quantidade: req.quantidade,
                         destino: pacote.centroCusto,
-                        descricao: `Requisição em pacote aprovada - Projeto: ${pacote.projeto} - ${pacote.justificativa}`
+                        descricao: `Requisição em pacote aprovada - Projeto: ${pacote.projeto} - ${pacote.justificativa}`,
+                        usuario_id: pacote.userId,
+                        usuario_nome: (solicitante && solicitante.name) || null,
+                        aprovador_id: aprovador && aprovador.aprovador_id ? aprovador.aprovador_id : null,
+                        aprovador_nome: aprovador && aprovador.aprovador_nome ? aprovador.aprovador_nome : null
                     });
                 }
                 
-                // Atualizar status do pacote
+                // Atualizar status e aprovador do pacote
                 await run(
-                    'UPDATE pacotes_requisicao SET status = ?, data_aprovacao = datetime("now") WHERE id = ?',
-                    ['aprovado', pacoteId]
+                    'UPDATE pacotes_requisicao SET status = ?, data_aprovacao = datetime("now"), aprovador_id = ?, aprovador_nome = ? WHERE id = ?',
+                    ['aprovado', aprovador && aprovador.aprovador_id ? aprovador.aprovador_id : null, aprovador && aprovador.aprovador_nome ? aprovador.aprovador_nome : null, pacoteId]
                 );
                 
                 await run('COMMIT');
@@ -938,7 +974,7 @@
     }
 
     // Função para aprovar itens específicos do pacote
-    function aprovarItensPacote(pacoteId, itemIds) {
+    function aprovarItensPacote(pacoteId, itemIds, aprovador) {
         return new Promise(async (resolve, reject) => {
             try {
                 await run('BEGIN TRANSACTION');
@@ -954,6 +990,14 @@
                 if (!pacote) {
                     throw new Error('Pacote não encontrado');
                 }
+                
+                // Buscar nome do solicitante
+                const solicitante = await new Promise((resolve, reject) => {
+                    db.get('SELECT name FROM usuarios WHERE id = ?', [pacote.userId], (err, row) => {
+                        if (err) reject(err);
+                        else resolve(row);
+                    });
+                });
                 
                 // Buscar requisições específicas
                 const requisicoes = await new Promise((resolve, reject) => {
@@ -988,12 +1032,22 @@
                         tipo: 'saida',
                         quantidade: req.quantidade,
                         destino: pacote.centroCusto,
-                        descricao: `Requisição em pacote aprovada - Projeto: ${pacote.projeto} - ${pacote.justificativa}`
+                        descricao: `Requisição em pacote aprovada - Projeto: ${pacote.projeto} - ${pacote.justificativa}`,
+                        usuario_id: pacote.userId,
+                        usuario_nome: (solicitante && solicitante.name) || null,
+                        aprovador_id: aprovador && aprovador.aprovador_id ? aprovador.aprovador_id : null,
+                        aprovador_nome: aprovador && aprovador.aprovador_nome ? aprovador.aprovador_nome : null
                     });
                 }
                 
                 // Verificar status do pacote após aprovação
                 await verificarEAtualizarStatusPacote(pacoteId);
+                
+                // Preencher aprovador no pacote caso todos os itens tenham sido processados
+                await run(
+                    'UPDATE pacotes_requisicao SET aprovador_id = COALESCE(aprovador_id, ?), aprovador_nome = COALESCE(aprovador_nome, ?) WHERE id = ?',
+                    [aprovador && aprovador.aprovador_id ? aprovador.aprovador_id : null, aprovador && aprovador.aprovador_nome ? aprovador.aprovador_nome : null, pacoteId]
+                );
                 
                 await run('COMMIT');
                 resolve(true);
@@ -1448,44 +1502,76 @@ function editarQuantidadesPacote(pacoteId, itensEditados) {
 }
 
 // Função para aprovar itens com quantidade personalizada
-function aprovarItensPacoteComQuantidade(pacoteId, itensAprovados) {
+function aprovarItensPacoteComQuantidade(pacoteId, itensAprovados, aprovador) {
     return new Promise((resolve, reject) => {
-        db.serialize(() => {
+        db.serialize(async () => {
             db.run('BEGIN TRANSACTION');
             
             try {
+                // Buscar dados do pacote e nome do solicitante
+                const pacote = await new Promise((resolve, reject) => {
+                    db.get('SELECT * FROM pacotes_requisicao WHERE id = ?', [pacoteId], (err, row) => {
+                        if (err) reject(err);
+                        else resolve(row);
+                    });
+                });
+                const solicitante = await new Promise((resolve, reject) => {
+                    db.get('SELECT name FROM usuarios WHERE id = ?', [pacote.userId], (err, row) => {
+                        if (err) reject(err);
+                        else resolve(row);
+                    });
+                });
+                
                 let promises = [];
                 
-                itensAprovados.forEach(item => {
-                    // Atualizar status da requisição
-                    const sql = `
-                        UPDATE requisicoes 
-                        SET status = 'aprovado', observacoes = 'Aprovado parcialmente'
-                        WHERE id = ?
-                    `;
-                    
-                    promises.push(new Promise((res, rej) => {
-                        db.run(sql, [item.item_id], function(err) {
-                            if (err) rej(err);
-                            else res(this.changes);
+                for (const item of itensAprovados) {
+                    // Buscar dados da requisição para obter itemId e nome do item
+                    const reqData = await new Promise((resolve, reject) => {
+                        const sql = `
+                            SELECT r.*, i.nome as item_nome
+                            FROM requisicoes r
+                            JOIN itens i ON r.itemId = i.id
+                            WHERE r.id = ? AND r.pacoteId = ?
+                        `;
+                        db.get(sql, [item.item_id, pacoteId], (err, row) => {
+                            if (err) reject(err);
+                            else resolve(row);
                         });
+                    });
+                    if (!reqData) continue;
+                    
+                    // Atualizar status da requisição
+                    promises.push(new Promise((res, rej) => {
+                        db.run(
+                            `UPDATE requisicoes SET status = 'aprovado', observacoes = 'Aprovado parcialmente' WHERE id = ?`,
+                            [item.item_id],
+                            function(err) { if (err) rej(err); else res(this.changes); }
+                        );
                     }));
                     
                     // Descontar do estoque
-                    promises.push(descontarEstoque(item.item_id, item.quantidade_aprovada));
+                    promises.push(descontarEstoque(reqData.itemId, item.quantidade_aprovada));
                     
                     // Registrar movimentação
                     promises.push(inserirMovimentacao({
-                        itemId: item.item_id,
-                        itemNome: item.item_nome,
+                        itemId: reqData.itemId,
+                        itemNome: reqData.item_nome,
                         tipo: 'saida',
                         quantidade: item.quantidade_aprovada,
-                        destino: item.centro_custo || 'Aprovado parcialmente',
-                        descricao: `Aprovado parcialmente do pacote ${pacoteId} - Quantidade: ${item.quantidade_aprovada}`
+                        destino: pacote.centroCusto || 'Aprovado parcialmente',
+                        descricao: `Aprovado parcialmente do pacote ${pacoteId} - Quantidade: ${item.quantidade_aprovada}`,
+                        usuario_id: pacote.userId,
+                        usuario_nome: (solicitante && solicitante.name) || null,
+                        aprovador_id: aprovador && aprovador.aprovador_id ? aprovador.aprovador_id : null,
+                        aprovador_nome: aprovador && aprovador.aprovador_nome ? aprovador.aprovador_nome : null
                     }));
-                });
+                }
                 
-                Promise.all(promises).then(() => {
+                Promise.all(promises).then(async () => {
+                    await run(
+                        'UPDATE pacotes_requisicao SET aprovador_id = COALESCE(aprovador_id, ?), aprovador_nome = COALESCE(aprovador_nome, ?) WHERE id = ?',
+                        [aprovador && aprovador.aprovador_id ? aprovador.aprovador_id : null, aprovador && aprovador.aprovador_nome ? aprovador.aprovador_nome : null, pacoteId]
+                    );
                     db.run('COMMIT');
                     resolve();
                 }).catch(err => {
