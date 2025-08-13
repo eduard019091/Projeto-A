@@ -3,17 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/login.css">
     <link rel="icon" type="image/png" href="andritzlogo2.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/main.css">
+    <link rel="stylesheet" href="/login.css">
     <title>Sistema de Login - Estoque</title>
 </head>
 <body>
     <div class="container">
+        <div class="sidebar-header" style="padding: 24px 24px 0 24px;">
+            <div class="logo-container" style="justify-content:center;">
+                <img src="/andritzlogo.png" class="sidebar-logo" style="height:36px;">
+                <span class="brand-name">GESTÃO ONLINE</span>
+            </div>
+        </div>
         <!-- Tela de Login -->
     <div id="loginForm" class="form-container active">
             <div class="logo">
-                <img src="/andritzlogo.png" class="logo-70">
-                <p>Sistema de Estoque</p>
+                <img src="/andritzlogo.png" class="logo-70" alt="Andritz Logo">
+                <p class="text-muted">Acesse com suas credenciais</p>
             </div>
             
             <div id="loginAlert"></div>
@@ -40,8 +48,8 @@
         <!-- Tela de Cadastro -->
     <div id="registerForm" class="form-container hidden">
             <div class="logo">
-                <img src="/andritzlogo.png" class="logo-70">
-                <p>Criar Conta</p>
+                <img src="/andritzlogo.png" class="logo-70" alt="Andritz Logo">
+                <p class="text-muted">Crie sua conta para continuar</p>
             </div>
             
             <div id="registerAlert"></div>
@@ -95,9 +103,11 @@
         <div id="userInfo" class="user-info">
             <h2>Bem-vindo(a)!</h2>
             <div id="userDetails"></div>
-            <button class="btn btn-continue" onclick="redirectToSystem()">Continuar para o Sistema</button>
-            <button class="btn btn-voltar-estoque hidden" onclick="redirectToSystem()">Voltar ao Estoque</button>
-            <button class="btn btn-logout" onclick="logout()">Sair</button>
+            <div style="display:flex; gap:12px; width:100%; max-width:360px;">
+                <button class="btn btn-secondary btn-voltar-estoque hidden" onclick="redirectToSystem()">Voltar ao Estoque</button>
+                <button class="btn btn-success" onclick="redirectToSystem()">Continuar</button>
+                <button class="btn btn-danger" onclick="logout()">Sair</button>
+            </div>
         </div>
     </div>
 
