@@ -504,6 +504,34 @@
         });
     }
 
+    // Garante que as colunas de aprovador existam em pacotes_requisicao
+    async function ensurePacoteAprovadorColumns() {
+        return new Promise((resolve) => {
+            db.all("PRAGMA table_info(pacotes_requisicao)", [], async (err, columns) => {
+                if (err) {
+                    // Em caso de erro no PRAGMA, apenas resolve para não bloquear
+                    return resolve();
+                }
+                const colNames = (columns || []).map(col => col.name);
+                const alterStmts = [];
+                if (!colNames.includes('aprovador_id')) {
+                    alterStmts.push("ALTER TABLE pacotes_requisicao ADD COLUMN aprovador_id INTEGER");
+                }
+                if (!colNames.includes('aprovador_nome')) {
+                    alterStmts.push("ALTER TABLE pacotes_requisicao ADD COLUMN aprovador_nome TEXT");
+                }
+                if (alterStmts.length === 0) {
+                    return resolve();
+                }
+                // Executa em série
+                for (const stmt of alterStmts) {
+                    try { await run(stmt); } catch (e) { /* ignora */ }
+                }
+                resolve();
+            });
+        });
+    }
+
     // Fechar conexão
     function fecharConexao() {
         db.close((err) => {
@@ -906,6 +934,8 @@
     function aprovarPacoteCompleto(pacoteId, aprovador) {
         return new Promise(async (resolve, reject) => {
             try {
+                // Garante migração de colunas necessárias
+                await ensurePacoteAprovadorColumns();
                 await run('BEGIN TRANSACTION');
                 
                 // Buscar dados do pacote
@@ -977,6 +1007,8 @@
     function aprovarItensPacote(pacoteId, itemIds, aprovador) {
         return new Promise(async (resolve, reject) => {
             try {
+                // Garante migração de colunas necessárias
+                await ensurePacoteAprovadorColumns();
                 await run('BEGIN TRANSACTION');
                 
                 // Buscar dados do pacote
@@ -1505,6 +1537,7 @@ function editarQuantidadesPacote(pacoteId, itensEditados) {
 function aprovarItensPacoteComQuantidade(pacoteId, itensAprovados, aprovador) {
     return new Promise((resolve, reject) => {
         db.serialize(async () => {
+            await ensurePacoteAprovadorColumns();
             db.run('BEGIN TRANSACTION');
             
             try {
