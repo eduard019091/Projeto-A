@@ -537,19 +537,37 @@ async function gerarRelatorioMovimentacao() {
         filtrosDiv = document.createElement('div');
         filtrosDiv.id = 'filtrosMovimentacao';
         filtrosDiv.innerHTML = `
-            <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
-                <input type="text" id="pesquisaMovimentacao" placeholder="Pesquisar por nome, destino, descrição ou data" style="padding:4px;">
-                <input type="number" id="filtroQtdMov" placeholder="Quantidade" min="1" style="width:100px;padding:4px;">
-                <select id="filtroTipoMov" style="padding:4px;min-width:120px;">
-                    <option value="">Todos os tipos</option>
-                    <option value="entrada">Entradas</option>
-                    <option value="saida">Saídas</option>
-                </select>
-                <select id="filtroUsuarioMov" style="padding:4px;min-width:150px;">
-                    <option value="">Todos os usuários</option>
-                </select>
-                <button class="btn" id="btnFiltrarMov">Filtrar</button>
-                <button class="btn" id="btnLimparFiltroMov">Limpar</button>
+            <div class="filter-grid">
+                <div class="form-group full-width">
+                    <label for="pesquisaMovimentacao">Pesquisar</label>
+                    <input type="text" id="pesquisaMovimentacao" placeholder="Pesquisar por nome, destino, descrição ou data">
+                </div>
+                <div class="form-group">
+                    <label for="filtroQtdMov">Quantidade</label>
+                    <input type="number" id="filtroQtdMov" placeholder="Quantidade" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="filtroTipoMov">Tipo</label>
+                    <select id="filtroTipoMov" class="filter-select">
+                        <option value="">Todos os tipos</option>
+                        <option value="entrada">Entradas</option>
+                        <option value="saida">Saídas</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="filtroUsuarioMov">Usuário</label>
+                    <select id="filtroUsuarioMov" class="filter-select">
+                        <option value="">Todos os usuários</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-primary" id="btnFiltrarMov">Filtrar</button>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-secondary" id="btnLimparFiltroMov">Limpar</button>
+                </div>
             </div>
         `;
         document.getElementById('relatorioMovimentacao').parentNode.insertBefore(filtrosDiv, document.getElementById('relatorioMovimentacao'));

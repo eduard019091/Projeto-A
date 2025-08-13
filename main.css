@@ -1860,3 +1860,72 @@ body {
     background: var(--primary-color);
     color: white;}
 }
+
+/* ===== ADIÇÕES PARA CONSISTÊNCIA GLOBAL ===== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.stat-card {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    text-align: center;
+}
+
+/* Estados de status (compatibilidade com tags usadas no app.js) */
+.status-entrada, .status-ideal {
+    background: #d1fae5;
+    color: #065f46;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-saida, .status-baixo {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Botões adicionais */
+.btn-info {
+    background: #0ea5e9;
+    color: white;
+}
+.btn-info:hover { background: #0284c7; }
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+.btn-success:hover { background: #059669; }
+
+/* Contêiner para lista de pacotes do usuário */
+.pacotes-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.pacote-card {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    box-shadow: var(--shadow);
+}
+
+/* Badges de status para pacotes */
+.status-aprovado { background: #d1fae5; color: #065f46; padding: 4px 8px; border-radius: 9999px; font-weight: 600; }
+.status-rejeitado { background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 9999px; font-weight: 600; }
+.status-parcialmente-aprovado { background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 9999px; font-weight: 600; }
+.status-pendente { background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 9999px; font-weight: 600; }
