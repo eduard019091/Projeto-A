@@ -1,0 +1,365 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-color, #f8fafc);
+    color: var(--text-color, #1e293b);
+    line-height: 1.5;
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.container {
+    background: var(--surface-color, #ffffff);
+    border-radius: var(--border-radius, 8px);
+    border: 1px solid var(--border-color, #e2e8f0);
+    box-shadow: var(--shadow, 0 1px 3px rgba(0,0,0,0.1));
+    overflow-x: hidden;
+    overflow-y: auto;
+    width: 100%;
+    max-width: 440px;
+    position: relative;
+    min-height: 520px;
+    max-height: 90vh;
+}
+
+.form-container {
+    padding: 40px 40px 60px 40px;
+    opacity: 0;
+    visibility: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    transform: translateX(20px);
+    transition: all 0.3s ease-in-out;
+}
+
+.form-container.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+}
+
+.logo {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.logo h1 {
+    color: var(--text-primary, #1e293b);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    margin-bottom: 6px;
+}
+
+.logo p {
+    color: var(--text-secondary, #64748b);
+    font-size: 13px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    position: relative;
+    width: 100%;
+}
+
+.form-group label {
+    display: block;
+    color: #374151;
+    font-weight: 500;
+    margin-bottom: 4px;
+    font-size: 13px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    background: #ffffff;
+    transition: border-color 0.15s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-group input:hover {
+    border-color: #26282c;
+}
+
+.form-group input.error {
+    border-color: #dc2626;
+    background: #fef2f2;
+}
+
+.admin-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.admin-toggle input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.admin-toggle label {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary, #64748b);
+    font-weight: 500;
+}
+
+.admin-code {
+    display: none;
+    animation: slideDown 0.3s ease;
+}
+
+.admin-code.show {
+    display: block;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.btn {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--primary-color, #1e40af);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    margin-bottom: 16px;
+}
+
+.btn:hover {
+    background: var(--primary-hover, #1e3a8a);
+}
+
+.btn:active {
+    background: #1e3a8a;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #6b7280;
+}
+
+.switch-form {
+    text-align: center;
+    margin-top: 16px;
+}
+
+.switch-form p {
+    color: var(--text-secondary, #64748b);
+    font-size: 13px;
+}
+
+.switch-form button {
+    background: none;
+    border: none;
+    color: #2563eb;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 13px;
+}
+
+.switch-form button:hover {
+    color: #1d4ed8;
+}
+
+.alert {
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    border-left: 4px solid;
+    animation: fadeIn 0.3s ease;
+}
+
+.alert-success {
+    background: #ecfdf5;
+    color: #065f46;
+    border-left-color: #10b981;
+    border: 1px solid #d1fae5;
+}
+
+.alert-error {
+    background: #fef2f2;
+    color: #991b1b;
+    border-left-color: #dc2626;
+    border: 1px solid #fee2e2;
+}
+
+.alert-info {
+    background: #eff6ff;
+    color: #1e40af;
+    border-left-color: #3b82f6;
+    border: 1px solid #dbeafe;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    background: #ffffff;
+}
+
+.loading.show {
+    display: flex;
+}
+
+.spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #2563eb;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.user-info {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px;
+    background: #ffffff;
+}
+
+.user-info.show {
+    display: flex;
+}
+
+.user-info h2 {
+    color: var(--text-primary, #1e293b);
+    margin-bottom: 16px;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.user-badge {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    border: 1px solid;
+}
+
+.user-badge.admin {
+    background: #dbeafe;
+    color: #1e40af;
+    border-color: #93c5fd;
+}
+
+.user-badge.user {
+    background: #d1fae5;
+    color: #065f46;
+    border-color: #6ee7b7;
+}
+
+.btn-logout {
+    background: #dc2626;
+    margin-top: 16px;
+}
+
+.btn-logout:hover {
+    background: #b91c1c;
+}
+
+.btn-continue {
+    background: #10b981;
+}
+
+.btn-continue:hover {
+    background: #059669;
+}
+
+/* Utilidades */
+.text-muted { color: var(--text-secondary, #64748b); }
+
+/* Logo width styles */
+.logo-70 {
+    width: 50%;
+}
+
+.hidden { display: none !important; }
+
+@media (max-width: 480px) {
+    .container {
+        margin: 10px;
+        border-radius: 6px;
+        height: calc(100vh - 20px);
+        max-height: none;
+    }
+    
+    .form-container {
+        padding: 24px 20px 40px 20px;
+    }
+    
+    .logo h1 {
+        font-size: 20px;
+    }
+    
+    .form-group {
+        margin-bottom: 16px;
+    }
+    
+    .switch-form {
+        margin-top: 24px;
+        padding-bottom: 16px;
+    }
+}

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="andritzlogo2.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/main.css">
+    <link rel="stylesheet" href="/login.css">
+    <title>Sistema de Login - Estoque</title>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar-header" style="padding: 24px 24px 0 24px;">
+            <div class="logo-container" style="justify-content:center;">
+            </div>
+        </div>
+        <!-- Tela de Login -->
+    <div id="loginForm" class="form-container active">
+            <div class="logo">
+                <img src="/andritzlogo2.png" class="logo-70" alt="Andritz Logo">
+                <p class="text-muted">Acesse com suas credenciais</p>
+            </div>
+            
+            <div id="loginAlert"></div>
+            
+            <form id="loginFormElement">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">Senha</label>
+                    <input type="password" id="loginPassword" name="password" required>
+                </div>
+                
+                <button type="submit" class="btn">Entrar</button>
+            </form>
+            
+            <div class="switch-form">
+                <p>Não tem uma conta? <button type="button" onclick="showRegister()">Cadastre-se</button></p>
+            </div>
+        </div>
+
+        <!-- Tela de Cadastro -->
+    <div id="registerForm" class="form-container hidden">
+            <div class="logo">
+                <img src="/andritzlogo2.png" class="logo-70" alt="Andritz Logo">
+                <p class="text-muted">Crie sua conta para continuar</p>
+            </div>
+            
+            <div id="registerAlert"></div>
+            
+            <form id="registerFormElement">
+                <div class="form-group">
+                    <label for="registerName">Nome Completo</label>
+                    <input type="text" id="registerName" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="registerPassword">Senha</label>
+                    <input type="password" id="registerPassword" name="password" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmPassword">Confirmar Senha</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required minlength="6">
+                </div>
+                
+                <div class="admin-toggle">
+                    <input type="checkbox" id="adminToggle" onchange="toggleAdminCode()">
+                    <label for="adminToggle">Cadastrar como Administrador</label>
+                </div>
+                
+                <div class="form-group admin-code" id="adminCodeGroup">
+                    <label for="adminCode">Código de Administrador</label>
+                    <input type="text" id="adminCode" name="adminCode" placeholder="Digite o código de admin">
+                </div>
+                
+                <button type="submit" class="btn">Criar Conta</button>
+            </form>
+            
+            <div class="switch-form">
+                <p>Já tem uma conta? <button type="button" onclick="showLogin()">Fazer Login</button></p>
+            </div>
+        </div>
+
+        <!-- Tela de Loading -->
+        <div id="loadingScreen" class="loading">
+            <div class="spinner"></div>
+            <p>Processando...</p>
+        </div>
+
+        <!-- Tela de Sucesso -->
+        <div id="userInfo" class="user-info">
+            <h2>Bem-vindo(a)!</h2>
+            <div id="userDetails"></div>
+            <div style="display:flex; gap:12px; width:100%; max-width:360px;">
+                <button class="btn btn-secondary btn-voltar-estoque hidden" onclick="redirectToSystem()">Voltar ao Estoque</button>
+                <button class="btn btn-success" onclick="redirectToSystem()">Continuar</button>
+                <button class="btn btn-danger" onclick="logout()">Sair</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="login.js"></script>
+</body>
+</html>
