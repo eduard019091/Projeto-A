@@ -1,10 +1,10 @@
-// Configuração da API
-const API_URL = '/api'; // Simplificado para usar caminho relativo
+
+const API_URL = '/api'; 
 
 let itensPacoteAtual = [];
 let itensEstoque = [];
 
-// Função para verificar se o usuário é admin
+//  verificar admin
 function isUserAdmin() {
     const userData = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
     return userData.userType === 'admin';
@@ -12,7 +12,7 @@ function isUserAdmin() {
 
 // Função para configurar visibilidade dos elementos baseado no tipo de usuário
 function configureUserInterface() {
-    const isAdmin = isUserAdmin();
+    const isAdmin = isUserAdmin(); 
     
     // Mostrar/ocultar elementos admin
     document.querySelectorAll('.admin-only').forEach(el => {
@@ -57,60 +57,75 @@ async function carregarItensDisponiveis() {
     }
 }
 
-// Carregar projetos e centros de custo para os selects
+// Carregar centros de custo para os selects
 async function carregarConfiguracoesPacotes() {
     try {
-        // Carregar projetos e centros de custo em paralelo
-        const [projetosResponse, centrosResponse] = await Promise.all([
-            fetch(`${API_URL}/projetos`),
-            fetch(`${API_URL}/centros-custo`)
-        ]);
+        // Carregar centros de custo
+        const centrosResponse = await fetch(`${API_URL}/centros-custo`);
 
-        // Verificar respostas
-        if (!projetosResponse.ok) throw new Error('Erro ao carregar projetos');
+        // Verificar resposta
         if (!centrosResponse.ok) throw new Error('Erro ao carregar centros de custo');
 
         // Processar dados
-        const [projetos, centrosCusto] = await Promise.all([
-            projetosResponse.json(),
-            centrosResponse.json()
-        ]);
+        let response = await centrosResponse.json();
+        let centrosCusto = response;
 
-        // Atualizar select de projetos
-        const projetoSelect = document.getElementById('projeto');
-        if (projetoSelect) {
-            projetoSelect.innerHTML = '<option value="">Selecione um projeto...</option>';
-            projetos.forEach(projeto => {
-                if (projeto.ativo) {
-                    const option = document.createElement('option');
-                    option.value = projeto.nome;
-                    option.textContent = projeto.nome;
-                    projetoSelect.appendChild(option);
-                }
-            });
+        // Verificar se a resposta está encapsulada em um objeto de resposta
+        if (response && !Array.isArray(response)) {
+            if (Array.isArray(response.data)) {
+                centrosCusto = response.data;
+            } else if (Array.isArray(response.centrosCusto)) {
+                centrosCusto = response.centrosCusto;
+            } else {
+                console.error('Formato inesperado de resposta:', response);
+                throw new Error('Formato de resposta inválido');
+            }
         }
 
         // Atualizar select de centros de custo
         const centroSelect = document.getElementById('centroCusto');
-        if (centroSelect) {
-            centroSelect.innerHTML = '<option value="">Selecione um centro de custo...</option>';
-            centrosCusto.forEach(centro => {
-                if (centro.ativo) {
-                    const option = document.createElement('option');
-                    option.value = centro.nome;
-                    option.textContent = centro.nome;
-                    centroSelect.appendChild(option);
-                }
-            });
+        if (!centroSelect) {
+            console.error('Select de centro de custo não encontrado no DOM');
+            return;
         }
 
-        console.log('Configurações carregadas:', {
-            projetos: projetos.length,
-            centrosCusto: centrosCusto.length
+        // Limpar opções existentes
+        centroSelect.innerHTML = '<option value="">Selecione um centro de custo...</option>';
+
+        // Verificar se centrosCusto é um array
+        if (!Array.isArray(centrosCusto)) {
+            console.error('Dados de centros de custo não são um array:', centrosCusto);
+            throw new Error('Formato de dados inválido');
+        }
+
+        // Filtrar apenas centros ativos e adicionar ao select
+        const centrosAtivos = centrosCusto.filter(centro => centro && centro.ativo !== false);
+        centrosAtivos.forEach(centro => {
+            const option = document.createElement('option');
+            option.value = centro.nome;
+            option.textContent = centro.nome;
+            centroSelect.appendChild(option);
         });
+
+        // Log da quantidade de centros carregados
+        console.log(`Carregados ${centrosAtivos.length} centros de custo ativos`);
+
+        // Se não houver centros ativos, mostrar mensagem
+        if (centrosAtivos.length === 0) {
+            const option = document.createElement('option');
+            option.value = "";
+            option.textContent = "Nenhum centro de custo cadastrado";
+            centroSelect.appendChild(option);
+            console.warn('Nenhum centro de custo ativo encontrado');
+        }
+
     } catch (error) {
-        console.error('Erro ao carregar configurações de pacotes:', error);
-        alert('Erro ao carregar projetos e centros de custo. Por favor, recarregue a página.');
+        console.error('Erro ao carregar centros de custo:', error);
+        const centroSelect = document.getElementById('centroCusto');
+        if (centroSelect) {
+            centroSelect.innerHTML = '<option value="">Erro ao carregar centros de custo</option>';
+        }
+        alert('Erro ao carregar centros de custo. Por favor, recarregue a página.');
     }
 }
 
@@ -209,16 +224,21 @@ async function inicializarSistemaRequisicoes() {
         // Carregar dados específicos do usuário
         carregarDadosUsuario();
         
-        // Carregar todos os dados necessários em paralelo
-        await Promise.all([
-            carregarItensDisponiveis(),
-            carregarConfiguracoesPacotes(),
-            carregarMeusPacotes()
-        ]);
+        // Load items and requisitions data
+        await carregarItensDisponiveis();
+        await carregarMeusPacotes();
         
-        // Se for admin, carregar pacotes pendentes
+        // Load admin-specific data if user is admin
         if (isUserAdmin()) {
             await carregarRequisicoesPendentes();
+        }
+        
+        // Carregar centros de custo para o formulário de novo pacote
+        await carregarConfiguracoesPacotes();
+        // Se estiver na aba de configurações, também carregar a tabela
+        const currentSection = document.querySelector('.content-section.active');
+        if (currentSection && currentSection.id === 'configuracoes') {
+            await carregarCentrosCusto();
         }
         
         // Configurar interface baseada no tipo de usuário
@@ -270,15 +290,17 @@ function carregarMeusPacotes() {
                 pacoteDiv.className = 'pacote-card';
                 
                 const statusClass = pacote.status === 'aprovado' ? 'status-aprovado' :
+                               pacote.status === 'aprovado_pendente_retirada' ? 'status-aprovado-pendente-retirada' :
                                pacote.status === 'rejeitado' ? 'status-rejeitado' :
                                pacote.status === 'parcialmente aprovado' ? 'status-parcialmente-aprovado' :
+                               pacote.status === 'parcialmente_aprovado_pendente_retirada' ? 'status-parcialmente-aprovado-pendente-retirada' :
                                'status-pendente';
                 
                 pacoteDiv.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: start;">
                         <div>
                             <h4>Pacote #${pacote.id}</h4>
-                            <p><strong>Projeto:</strong> ${pacote.projeto}</p>
+
                             <p><strong>Centro de Custo:</strong> ${pacote.centroCusto}</p>
                             <p><strong>Justificativa:</strong> ${pacote.justificativa}</p>
                             <p><strong>Itens:</strong> ${pacote.total_itens || 0} • <strong>Total:</strong> ${pacote.total_quantidade || 0} unidades</p>
@@ -293,7 +315,7 @@ function carregarMeusPacotes() {
                         <button class="btn btn-info btn-sm" onclick="verItensPacote(${pacote.id})" style="margin-right: 5px;">
                             Ver Itens
                         </button>
-                        ${pacote.status === 'aprovado' || pacote.status === 'rejeitado' || pacote.status === 'parcialmente aprovado' ? 
+                        ${pacote.status === 'aprovado' || pacote.status === 'aprovado_pendente_retirada' || pacote.status === 'rejeitado' || pacote.status === 'parcialmente aprovado' || pacote.status === 'parcialmente_aprovado_pendente_retirada' ? 
                             `<button class="btn btn-primary btn-sm" onclick="exportarRelatorioPacote(${pacote.id})">Exportar XLSX</button>` : 
                             ''
                         }
@@ -398,10 +420,7 @@ function carregarRequisicoesPendentes() {
                                 <span class="info-label">Centro de Custo</span>
                                 <span class="info-value">${pacote.centroCusto}</span>
                             </div>
-                            <div class="info-group">
-                                <span class="info-label">Projeto</span>
-                                <span class="info-value">${pacote.projeto}</span>
-                            </div>
+
                             <div class="info-group">
                                 <span class="info-label">Total de Itens</span>
                                 <span class="info-value">${pacote.total_itens} itens</span>
@@ -413,6 +432,10 @@ function carregarRequisicoesPendentes() {
                             <div class="info-group">
                                 <span class="info-label">Justificativa</span>
                                 <span class="info-value">${pacote.justificativa}</span>
+                            </div>
+                            <div class="info-group">
+                                <span class="info-label">Aprovador</span>
+                                <span class="info-value">${pacote.aprovador_nome || 'Não definido'}</span>
                             </div>
                         </div>
                     </div>
@@ -479,7 +502,7 @@ function expandirPacote(pacoteId) {
                         <td>
                             <span class="status-${item.status}">${item.status}</span>
                             ${!disponivel ? '<br><small style="color: red;">Indisponível</small>' : ''}
-                            ${item.status === 'aprovado' ? '<br><small style="color: green;">✓ Já aprovado</small>' : ''}
+                            ${item.status === 'aprovado' || item.status === 'aprovado_pendente_retirada' ? '<br><small style="color: green;">✓ Já aprovado</small>' : ''}
                             ${item.status === 'rejeitado' ? '<br><small style="color: red;">✗ Já rejeitado</small>' : ''}
                         </td>
                     </tr>
@@ -654,10 +677,9 @@ function criarPacoteRequisicoes(event) {
     
     const userData = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
     const centroCusto = document.getElementById('centroCusto').value;
-    const projeto = document.getElementById('projeto').value;
     const justificativa = document.getElementById('justificativa').value;
     
-    if (!centroCusto || !projeto || !justificativa) {
+    if (!centroCusto || !justificativa) {
         alert('Preencha todos os campos do pacote!');
         return;
     }
@@ -669,7 +691,6 @@ function criarPacoteRequisicoes(event) {
         body: JSON.stringify({
             userId: userData.id,
             centroCusto,
-            projeto,
             justificativa,
             itens: itensPacoteAtual
         })
@@ -734,10 +755,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         // Event listeners para formulários de configuração
-        const projetoForm = document.getElementById('projetoForm');
-        if (projetoForm) {
-            projetoForm.addEventListener('submit', criarProjeto);
-        }
+        await carregarUsuariosAprovador();
         
         const centroCustoForm = document.getElementById('centroCustoForm');
         if (centroCustoForm) {
@@ -785,9 +803,19 @@ function showSection(sectionId) {
         }
     }
     
+    // Load section-specific data
+    if (sectionId === 'configuracoes') {
+        // Load centers of cost configuration
+        carregarConfiguracoesPacotes();
+        carregarCentrosCusto();
+    } else if (sectionId === 'novoPacote') {
+        // Garantir que o select de centro de custo esteja carregado ao abrir a criação
+        carregarConfiguracoesPacotes();
+    }
+    
     // Fazer scroll para o topo da página com múltiplas opções para garantir compatibilidade
     setTimeout(() => {
-        // Método 1: scrollTo com smooth behavior
+        // Método 1: scrollTo with smooth behavior
         if (window.scrollTo) {
             window.scrollTo({
                 top: 0,
@@ -795,12 +823,12 @@ function showSection(sectionId) {
             });
         }
         
-        // Método 2: scrollTop como fallback
+        // Método 2: scrollTop as fallback
         if (document.documentElement.scrollTop !== undefined) {
             document.documentElement.scrollTop = 0;
         }
         
-        // Método 3: scrollTop do body como fallback adicional
+        // Método 3: scrollTop of body as additional fallback
         if (document.body.scrollTop !== undefined) {
             document.body.scrollTop = 0;
         }
@@ -811,151 +839,38 @@ function showSection(sectionId) {
 
 // Função para mostrar abas de configuração
 function showConfigTab(tabName) {
-    // Ocultar todas as seções
-    document.querySelectorAll('.config-section').forEach(section => {
-        section.classList.remove('active');
-    });
-    
-    // Remover classe active de todos os botões
-    document.querySelectorAll('.config-tab').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    // Mostrar seção selecionada
-    const selectedSection = document.getElementById(`config-${tabName}`);
-    if (selectedSection) {
-        selectedSection.classList.add('active');
-    }
-    
-    // Adicionar classe active no botão correspondente
-    const activeButton = event.target.closest('.config-tab');
-    if (activeButton) {
-        activeButton.classList.add('active');
-    }
-    
     // Carregar dados da aba selecionada
-    if (tabName === 'projetos') {
-        carregarProjetos();
-    } else if (tabName === 'centros-custo') {
+    if (tabName === 'centros-custo') {
         carregarCentrosCusto();
     }
 }
 
-// Funções para gerenciar projetos
-async function carregarProjetos() {
-    try {
-        const response = await fetch(`${API_URL}/projetos`);
-        if (!response.ok) throw new Error('Erro ao carregar projetos');
-        
-        const projetos = await response.json();
-        const tbody = document.querySelector('#tabelaProjetos tbody');
-        tbody.innerHTML = '';
-        
-        projetos.forEach(projeto => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${projeto.nome}</td>
-                <td>${projeto.descricao || '-'}</td>
-                <td><span class="status-ativo">Ativo</span></td>
-                <td>
-                    <button class="btn btn-sm btn-warning" onclick="editarProjeto(${projeto.id})">Editar</button>
-                    <button class="btn btn-sm btn-danger" onclick="removerProjeto(${projeto.id})">Remover</button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-    } catch (error) {
-        console.error('Erro ao carregar projetos:', error);
-        alert('Erro ao carregar projetos');
-    }
-}
 
-async function criarProjeto(event) {
-    event.preventDefault();
-    
-    const nome = document.getElementById('projetoNome').value.trim();
-    const descricao = document.getElementById('projetoDescricao').value.trim();
-    
-    if (!nome) {
-        alert('Nome do projeto é obrigatório');
-        return;
-    }
-    
+
+// Função para carregar usuários para o select de aprovador
+async function carregarUsuariosAprovador() {
     try {
-        const response = await fetch(`${API_URL}/projetos`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome, descricao })
-        });
+        const response = await fetch(`${API_URL}/usuarios`);
+        if (!response.ok) throw new Error('Erro ao carregar usuários');
         
-        if (!response.ok) throw new Error('Erro ao criar projeto');
+        const usuariosResponse = await response.json();
+        const usuarios = Array.isArray(usuariosResponse)
+            ? usuariosResponse
+            : (usuariosResponse.usuarios || []);
+        const usuariosAdmins = usuarios.filter(u => u.userType === 'admin');
+        const aprovadorSelect = document.getElementById('centroCustoAprovador');
         
-        const result = await response.json();
-        if (result.success) {
-            alert('Projeto criado com sucesso!');
-            document.getElementById('projetoForm').reset();
-            carregarProjetos();
-        } else {
-            alert(result.message || 'Erro ao criar projeto');
+        if (aprovadorSelect) {
+            aprovadorSelect.innerHTML = '<option value="">Selecione um aprovador...</option>';
+            usuariosAdmins.forEach(usuario => {
+                const option = document.createElement('option');
+                option.value = usuario.id;
+                option.textContent = usuario.name;
+                aprovadorSelect.appendChild(option);
+            });
         }
     } catch (error) {
-        console.error('Erro ao criar projeto:', error);
-        alert('Erro ao criar projeto');
-    }
-}
-
-async function editarProjeto(id) {
-    const novoNome = prompt('Digite o novo nome do projeto:');
-    if (!novoNome) return;
-    
-    const novaDescricao = prompt('Digite a nova descrição (opcional):');
-    
-    try {
-        const response = await fetch(`${API_URL}/projetos/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                nome: novoNome, 
-                descricao: novaDescricao || '', 
-                ativo: 1 
-            })
-        });
-        
-        if (!response.ok) throw new Error('Erro ao atualizar projeto');
-        
-        const result = await response.json();
-        if (result.success) {
-            alert('Projeto atualizado com sucesso!');
-            carregarProjetos();
-        } else {
-            alert(result.message || 'Erro ao atualizar projeto');
-        }
-    } catch (error) {
-        console.error('Erro ao atualizar projeto:', error);
-        alert('Erro ao atualizar projeto');
-    }
-}
-
-async function removerProjeto(id) {
-    if (!confirm('Tem certeza que deseja remover este projeto?')) return;
-    
-    try {
-        const response = await fetch(`${API_URL}/projetos/${id}`, {
-            method: 'DELETE'
-        });
-        
-        if (!response.ok) throw new Error('Erro ao remover projeto');
-        
-        const result = await response.json();
-        if (result.success) {
-            alert('Projeto removido com sucesso!');
-            carregarProjetos();
-        } else {
-            alert(result.message || 'Erro ao remover projeto');
-        }
-    } catch (error) {
-        console.error('Erro ao remover projeto:', error);
-        alert('Erro ao remover projeto');
+        console.error('Erro ao carregar usuários:', error);
     }
 }
 
@@ -974,6 +889,7 @@ async function carregarCentrosCusto() {
             row.innerHTML = `
                 <td>${centro.nome}</td>
                 <td>${centro.descricao || '-'}</td>
+                <td>${centro.aprovador_nome || '-'}</td>
                 <td><span class="status-ativo">Ativo</span></td>
                 <td>
                     <button class="btn btn-sm btn-warning" onclick="editarCentroCusto(${centro.id})">Editar</button>
@@ -993,9 +909,10 @@ async function criarCentroCusto(event) {
     
     const nome = document.getElementById('centroCustoNome').value.trim();
     const descricao = document.getElementById('centroCustoDescricao').value.trim();
+    const aprovadorId = document.getElementById('centroCustoAprovador').value;
     
-    if (!nome) {
-        alert('Nome do centro de custo é obrigatório');
+    if (!nome || !aprovadorId) {
+        alert('Nome do centro de custo e aprovador são obrigatórios');
         return;
     }
     
@@ -1003,7 +920,7 @@ async function criarCentroCusto(event) {
         const response = await fetch(`${API_URL}/centros-custo`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome, descricao })
+            body: JSON.stringify({ nome, descricao, aprovador_id: aprovadorId })
         });
         
         if (!response.ok) throw new Error('Erro ao criar centro de custo');
@@ -1027,6 +944,7 @@ async function editarCentroCusto(id) {
     if (!novoNome) return;
     
     const novaDescricao = prompt('Digite a nova descrição (opcional):');
+    const novoAprovadorId = prompt('Digite o ID do novo aprovador (ou deixe vazio para manter o atual):');
     
     try {
         const response = await fetch(`${API_URL}/centros-custo/${id}`, {
@@ -1035,6 +953,7 @@ async function editarCentroCusto(id) {
             body: JSON.stringify({ 
                 nome: novoNome, 
                 descricao: novaDescricao || '', 
+                aprovador_id: novoAprovadorId || null,
                 ativo: 1 
             })
         });
@@ -1122,10 +1041,7 @@ async function gerarRelatorioPacote(pacoteId) {
                             <div class="relatorio-info-label">Centro de Custo</div>
                             <div class="relatorio-info-value">${pacote.centroCusto}</div>
                         </div>
-                        <div class="relatorio-info-item">
-                            <div class="relatorio-info-label">Projeto</div>
-                            <div class="relatorio-info-value">${pacote.projeto}</div>
-                        </div>
+
                         ${pacote.aprovador_nome ? `
                         <div class="relatorio-info-item">
                             <div class="relatorio-info-label">Aprovado por</div>
@@ -1159,7 +1075,7 @@ async function gerarRelatorioPacote(pacoteId) {
                                     <tr>
                                         <td>${item.item_nome}</td>
                                         <td>${item.quantidade}</td>
-                                        <td>${item.status === 'aprovado' ? item.quantidade : 0}</td>
+                                        <td>${item.status === 'aprovado' || item.status === 'aprovado_pendente_retirada' ? item.quantidade : 0}</td>
                                         <td><span class="status-${item.status}">${item.status.toUpperCase()}</span></td>
                                     </tr>
                                 `).join('')}
@@ -1217,10 +1133,7 @@ async function editarPacote(pacoteId) {
                                 <span class="relatorio-info-label">Centro de Custo:</span>
                                 <span class="relatorio-info-value">${pacote.centroCusto || 'N/A'}</span>
                             </div>
-                            <div class="relatorio-info-item">
-                                <span class="relatorio-info-label">Projeto:</span>
-                                <span class="relatorio-info-value">${pacote.projeto || 'N/A'}</span>
-                            </div>
+
                             <div class="relatorio-info-item">
                                 <span class="relatorio-info-label">Justificativa:</span>
                                 <span class="relatorio-info-value">${pacote.justificativa || 'N/A'}</span>
@@ -1265,8 +1178,8 @@ async function editarPacote(pacoteId) {
                                                                name="quantidade_${item.id}" 
                                                                value="${item.quantidade}" 
                                                                disabled>
-                                                        <span style="color: ${item.status === 'aprovado' ? 'green' : 'red'};">
-                                                            ${item.status === 'aprovado' ? '✓ Aprovado' : '✗ Rejeitado'}
+                                                        <span style="color: ${item.status === 'aprovado' || item.status === 'aprovado_pendente_retirada' ? 'green' : 'red'};">
+                                                            ${item.status === 'aprovado' || item.status === 'aprovado_pendente_retirada' ? '✓ Aprovado' : '✗ Rejeitado'}
                                                         </span>
                                                     </div>`
                                                 }
@@ -1407,14 +1320,10 @@ function filtrarMeusPacotes() {
         const statusElement = pacote.querySelector('.status-aprovado, .status-rejeitado, .status-pendente, .status-parcialmente-aprovado');
         const status = statusElement ? statusElement.textContent.trim().toLowerCase() : '';
 
-        // Extrair projeto e centro de custo
-        let projeto = '';
+        // Extrair centro de custo
         let centroCusto = '';
         const pTags = pacote.querySelectorAll('p');
         pTags.forEach(p => {
-            if (p.textContent.toLowerCase().includes('projeto:')) {
-                projeto = p.textContent.replace('Projeto:', '').trim().toLowerCase();
-            }
             if (p.textContent.toLowerCase().includes('centro de custo:')) {
                 centroCusto = p.textContent.replace('Centro de Custo:', '').trim().toLowerCase();
             }
@@ -1450,7 +1359,7 @@ function filtrarMeusPacotes() {
         }
 
         // Filtro por pesquisa
-        if (pesquisa && !centroCusto.includes(pesquisa) && !projeto.includes(pesquisa)) {
+        if (pesquisa && !centroCusto.includes(pesquisa)) {
             mostrar = false;
         }
 
@@ -1646,3 +1555,282 @@ async function exportarRelatorioPacote(pacoteId) {
         alert(errorMessage);
     }
 }
+
+// ===== FUNÇÕES PARA RETIRADAS PENDENTES =====
+
+// Carregar retiradas pendentes
+async function carregarRetiradasPendentes() {
+    try {
+        const container = document.getElementById('retiradasPendentesContainer');
+        container.innerHTML = `
+            <div class="loading-message">
+                <i class="fas fa-spinner fa-spin"></i>
+                Carregando retiradas pendentes...
+            </div>
+        `;
+
+        const response = await fetch('/api/retiradas-pendentes');
+        const result = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.message);
+        }
+
+        const retiradas = result.data;
+        
+        if (retiradas.length === 0) {
+            container.innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-check-circle"></i>
+                    Não há retiradas pendentes de confirmação
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = retiradas.map(retirada => criarCardRetirada(retirada)).join('');
+        
+    } catch (error) {
+        console.error('Erro ao carregar retiradas pendentes:', error);
+        const container = document.getElementById('retiradasPendentesContainer');
+        container.innerHTML = `
+            <div class="empty-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                Erro ao carregar retiradas pendentes: ${error.message}
+            </div>
+        `;
+    }
+}
+
+// Criar card para uma retirada pendente
+function criarCardRetirada(retirada) {
+    const dataAprovacao = new Date(retirada.data_aprovacao).toLocaleString();
+    const estoqueWarning = retirada.estoque_atual < retirada.quantidade ? 'style="color: #dc3545; font-weight: bold;"' : '';
+    
+    return `
+        <div class="retirada-card" data-retirada-id="${retirada.id}">
+            <div class="retirada-header">
+                <div class="retirada-info">
+                    <h4>${retirada.item_nome}</h4>
+                    <small>Requisição #${retirada.requisicao_id}</small>
+                </div>
+                <div class="retirada-status">
+                    Pendente Confirmação
+                </div>
+            </div>
+            
+            <div class="retirada-details">
+                <div class="detail-item">
+                    <span class="detail-label">Quantidade Solicitada</span>
+                    <span class="detail-value">${retirada.quantidade}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Estoque Atual</span>
+                    <span class="detail-value" ${estoqueWarning}>${retirada.estoque_atual}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Centro de Custo</span>
+                    <span class="detail-value">${retirada.centro_custo || 'Não informado'}</span>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Solicitado por</span>
+                    <span class="detail-value">${retirada.usuario_nome || 'Não informado'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Aprovado por</span>
+                    <span class="detail-value">${retirada.aprovador_nome || 'Não informado'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Data da Aprovação</span>
+                    <span class="detail-value">${dataAprovacao}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Justificativa</span>
+                    <span class="detail-value">${retirada.justificativa || 'Não informado'}</span>
+                </div>
+            </div>
+            
+            ${retirada.estoque_atual < retirada.quantidade ? 
+                `<div class="alert alert-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Atenção: Estoque insuficiente para confirmar esta retirada!
+                </div>` : ''
+            }
+            
+            <div class="retirada-actions">
+                <button class="btn-cancelar" onclick="abrirModalCancelamento(${retirada.id})">
+                    <i class="fas fa-times"></i>
+                    Cancelar
+                </button>
+                <button class="btn-confirmar" onclick="confirmarRetirada(${retirada.id})" 
+                        ${retirada.estoque_atual < retirada.quantidade ? 'disabled title="Estoque insuficiente"' : ''}>
+                    <i class="fas fa-check"></i>
+                    Confirmar Retirada
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Confirmar retirada
+async function confirmarRetirada(retiradaId) {
+    if (!confirm('Tem certeza que deseja confirmar esta retirada? O item será debitado do estoque.')) {
+        return;
+    }
+    
+    try {
+        const usuario = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+        
+        // Verificar se o usuário está logado
+        if (!usuario || !usuario.id) {
+            mostrarAlerta('Erro: Usuário não está logado. Faça login novamente.', 'error');
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        const response = await fetch(`/api/retiradas-pendentes/${retiradaId}/confirmar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                confirmado_por: {
+                    id: usuario.id,
+                    name: usuario.name
+                }
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.message);
+        }
+        
+        // Mostrar mensagem de sucesso
+        mostrarAlerta('Retirada confirmada com sucesso!', 'success');
+        
+        // Recarregar lista
+        carregarRetiradasPendentes();
+        
+    } catch (error) {
+        console.error('Erro ao confirmar retirada:', error);
+        mostrarAlerta('Erro ao confirmar retirada: ' + error.message, 'error');
+    }
+}
+
+// Abrir modal de cancelamento
+function abrirModalCancelamento(retiradaId) {
+    const modal = document.createElement('div');
+    modal.className = 'cancel-modal';
+    modal.innerHTML = `
+        <div class="cancel-modal-content">
+            <h3>Cancelar Retirada</h3>
+            <p>Tem certeza que deseja cancelar esta retirada? Esta ação não pode ser desfeita.</p>
+            
+            <div class="cancel-form">
+                <label for="motivoCancelamento">Motivo do cancelamento:</label>
+                <textarea id="motivoCancelamento" placeholder="Digite o motivo do cancelamento..."></textarea>
+                
+                <div class="cancel-form-actions">
+                    <button class="btn btn-secondary" onclick="fecharModalCancelamento()">
+                        Cancelar
+                    </button>
+                    <button class="btn-cancelar" onclick="confirmarCancelamento(${retiradaId})">
+                        <i class="fas fa-times"></i>
+                        Confirmar Cancelamento
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Fechar modal de cancelamento
+function fecharModalCancelamento() {
+    const modal = document.querySelector('.cancel-modal');
+    if (modal) {
+        document.body.removeChild(modal);
+    }
+}
+
+// Confirmar cancelamento da retirada
+async function confirmarCancelamento(retiradaId) {
+    try {
+        const motivo = document.getElementById('motivoCancelamento').value.trim();
+        const usuario = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+        
+        // Verificar se o usuário está logado
+        if (!usuario || !usuario.id) {
+            mostrarAlerta('Erro: Usuário não está logado. Faça login novamente.', 'error');
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        const response = await fetch(`/api/retiradas-pendentes/${retiradaId}/cancelar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                cancelado_por: {
+                    id: usuario.id,
+                    name: usuario.name
+                },
+                motivo: motivo
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.message);
+        }
+        
+        // Fechar modal
+        fecharModalCancelamento();
+        
+        //  mensagem de sucesso
+        mostrarAlerta('Retirada cancelada com sucesso!', 'success');
+        
+        // Recarregar 
+        carregarRetiradasPendentes();
+        
+    } catch (error) {
+        console.error('Erro ao cancelar retirada:', error);
+        mostrarAlerta('Erro ao cancelar retirada: ' + error.message, 'error');
+    }
+}
+
+// Mostrar alerta
+function mostrarAlerta(mensagem, tipo) {
+    const container = document.getElementById('retiradasPendentesContainer');
+    const alerta = document.createElement('div');
+    alerta.className = `alert alert-${tipo}`;
+    alerta.innerHTML = mensagem;
+    
+    container.insertBefore(alerta, container.firstChild);
+    
+
+    setTimeout(() => {
+        if (alerta.parentNode) {
+            alerta.parentNode.removeChild(alerta);
+        }
+    }, 5000);
+}
+
+// Carregar retiradas automaticamente quando a seção for exibida
+document.addEventListener('DOMContentLoaded', function() {
+    // Adicionar listener para carregar retiradas quando a seção for exibida
+    const originalShowSection = window.showSection;
+    window.showSection = function(sectionId) {
+        originalShowSection(sectionId);
+        
+        if (sectionId === 'confirmarRetiradas') {
+            carregarRetiradasPendentes();
+        }
+    };
+});

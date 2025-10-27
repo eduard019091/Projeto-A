@@ -261,9 +261,9 @@ app.post('/api/unificar-itens', async (req, res) => {
 // Rotas para pacotes de requisições
 app.post('/api/pacotes', async (req, res) => {
     try {
-        const { userId, centroCusto, projeto, justificativa, itens } = req.body;
+        const { userId, centroCusto, justificativa, itens, projeto: projetoBody } = req.body;
         
-        if (!userId || !centroCusto || !projeto || !justificativa || !itens || !Array.isArray(itens) || itens.length === 0) {
+        if (!userId || !centroCusto || !justificativa || !itens || !Array.isArray(itens) || itens.length === 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Dados inválidos para criar pacote'
@@ -291,7 +291,8 @@ app.post('/api/pacotes', async (req, res) => {
         const pacoteId = await db.criarPacoteRequisicao({
             userId,
             centroCusto,
-            projeto,
+            // Campo projeto foi removido do pacote; manter compatibilidade aceitando valor opcional
+            projeto: projetoBody || null,
             justificativa
         });
 
@@ -302,7 +303,7 @@ app.post('/api/pacotes', async (req, res) => {
                 itemId: item.id,
                 quantidade: item.quantidade,
                 centroCusto,
-                projeto,
+                projeto: projetoBody || null,
                 justificativa: `PACOTE: ${justificativa}`,
                 pacoteId
             });
@@ -712,6 +713,104 @@ app.post('/api/itens/:id/retirar', async (req, res) => {
         });
     }
 });
+
+// ===== ROTAS PARA RETIRADAS PENDENTES =====
+
+// Rota para buscar todas as retiradas pendentes
+app.get('/api/retiradas-pendentes', async (req, res) => {
+    try {
+        const retiradasPendentes = await db.buscarRetiradasPendentes();
+        res.json({
+            success: true,
+            data: retiradasPendentes
+        });
+    } catch (error) {
+        console.error('Erro ao buscar retiradas pendentes:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Erro ao buscar retiradas pendentes',
+            error: error.message
+        });
+    }
+});
+
+// Rota para buscar retirada pendente por ID
+app.get('/api/retiradas-pendentes/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const retirada = await db.buscarRetiradaPorId(id);
+        
+        if (!retirada) {
+            return res.status(404).json({
+                success: false,
+                message: 'Retirada não encontrada'
+            });
+        }
+        
+        res.json({
+            success: true,
+            data: retirada
+        });
+    } catch (error) {
+        console.error('Erro ao buscar retirada:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Erro ao buscar retirada',
+            error: error.message
+        });
+    }
+});
+
+// Rota para confirmar retirada (debitar do estoque)
+app.post('/api/retiradas-pendentes/:id/confirmar', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { confirmado_por } = req.body;
+        
+        if (!confirmado_por || !confirmado_por.id || !confirmado_por.name) {
+            return res.status(400).json({
+                success: false,
+                message: 'Dados do usuário que confirma são obrigatórios'
+            });
+        }
+        
+        const resultado = await db.confirmarRetirada(id, confirmado_por);
+        res.json(resultado);
+    } catch (error) {
+        console.error('Erro ao confirmar retirada:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Erro ao confirmar retirada',
+            error: error.message
+        });
+    }
+});
+
+// Rota para cancelar retirada
+app.post('/api/retiradas-pendentes/:id/cancelar', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { cancelado_por, motivo } = req.body;
+        
+        if (!cancelado_por || !cancelado_por.id || !cancelado_por.name) {
+            return res.status(400).json({
+                success: false,
+                message: 'Dados do usuário que cancela são obrigatórios'
+            });
+        }
+        
+        const resultado = await db.cancelarRetirada(id, cancelado_por, motivo);
+        res.json(resultado);
+    } catch (error) {
+        console.error('Erro ao cancelar retirada:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Erro ao cancelar retirada',
+            error: error.message
+        });
+    }
+});
+
 // Adicione esta rota no seu server.js, junto com as outras rotas de itens
 
 // Rota para atualizar item completo
@@ -741,7 +840,6 @@ app.put('/api/itens/:id', async (req, res) => {
                 nf = ?, 
                 quantidade = ?, 
                 minimo = ?, 
-                ideal = ?, 
                 infos = ?
             WHERE id = ?
         `;
@@ -756,7 +854,6 @@ app.put('/api/itens/:id', async (req, res) => {
             itemData.nf || itemExistente.nf,
             itemData.quantidade !== undefined ? itemData.quantidade : itemExistente.quantidade,
             itemData.minimo !== undefined ? itemData.minimo : itemExistente.minimo,
-            itemData.ideal !== undefined ? itemData.ideal : itemExistente.ideal,
             itemData.infos || itemExistente.infos,
             id
         ]);
@@ -1054,7 +1151,7 @@ app.delete('/api/projetos/:id', async (req, res) => {
 // Rotas para gerenciar centros de custo
 app.post('/api/centros-custo', async (req, res) => {
     try {
-        const { nome, descricao } = req.body;
+        const { nome, descricao, aprovador_id } = req.body;
         
         if (!nome) {
             return res.status(400).json({
@@ -1063,7 +1160,7 @@ app.post('/api/centros-custo', async (req, res) => {
             });
         }
 
-        const centroCusto = await db.criarCentroCusto({ nome, descricao });
+        const centroCusto = await db.criarCentroCusto({ nome, descricao, aprovador_id });
         
         res.json({
             success: true,
@@ -1095,9 +1192,9 @@ app.get('/api/centros-custo', async (req, res) => {
 app.put('/api/centros-custo/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { nome, descricao, ativo } = req.body;
+        const { nome, descricao, ativo, aprovador_id } = req.body;
         
-        await db.atualizarCentroCusto(id, { nome, descricao, ativo });
+        await db.atualizarCentroCusto(id, { nome, descricao, ativo, aprovador_id });
         
         res.json({
             success: true,

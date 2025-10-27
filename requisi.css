@@ -1,33 +1,54 @@
-/* Estilos para pacotes e cards */
-.pacote-card {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
-    background: white;
-}
-
-/* Estilos para o modal */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background: white;
+/* Estilos gerais */
+.content-section {
     padding: 20px;
-    border-radius: 8px;
-    max-width: 800px;
-    max-height: 80vh;
-    overflow-y: auto;
+}
+
+.section-header {
+    margin-bottom: 24px;
+}
+
+.section-header h2 {
+    font-size: 1.8em;
+    color: #1e293b;
+    margin: 0 0 8px 0;
+}
+
+.section-header p {
+    color: #64748b;
+    margin: 0;
+}
+
+.content-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: 24px;
+}
+
+.card-header {
+    padding: 20px;
+    border-bottom: 1px solid #eef2f7;
+    background: linear-gradient(to right, #f8fafc, #f1f5f9);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-header h3 {
+    margin: 0;
+    font-size: 1.4em;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.card-header h3 i {
+    color: #3b82f6;
+}
+
+.card-content {
+    padding: 20px;
 }
 
 /* Estilos para o botão de logout */
@@ -43,4 +64,481 @@
     cursor: pointer;
     font-size: 14px;
     z-index: 1000;
+}
+
+/* Estilos dos botões */
+.btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95em;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.btn-secondary:hover {
+    background: #e2e8f0;
+}
+
+/* Estilos do container de retiradas */
+.retiradas-container {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+}
+
+/* Card de retirada individual */
+.retirada-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.retirada-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Cabeçalho do card de retirada */
+.retirada-header {
+    padding: 16px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.retirada-info {
+    margin-bottom: 8px;
+}
+
+.retirada-info h4 {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 4px 0;
+}
+
+.retirada-info small {
+    color: #64748b;
+    font-size: 0.9em;
+}
+
+/* Status da retirada */
+.retirada-status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 16px;
+    background: #fff7ed;
+    color: #9a3412;
+    border: 1px solid #fed7aa;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+/* Detalhes da retirada */
+.retirada-details {
+    padding: 16px;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.detail-item {
+    padding: 8px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.detail-label {
+    display: block;
+    font-size: 0.75em;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.detail-value {
+    font-size: 0.95em;
+    color: #1e293b;
+    font-weight: 500;
+}
+
+.info-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.info-group:hover {
+    background: #f1f5f9;
+}
+
+.info-label {
+    font-size: 0.85em;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.info-label i {
+    font-size: 1.1em;
+    color: #94a3b8;
+}
+
+.info-value {
+    color: #334155;
+    font-size: 1em;
+    font-weight: 500;
+}
+
+/* Ações da retirada */
+.retirada-actions {
+    padding: 16px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+/* Botões de ação */
+.btn-confirmar, .btn-cancelar {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-confirmar {
+    background-color: #10b981;
+    color: white;
+}
+
+.btn-confirmar:hover:not(:disabled) {
+    background-color: #059669;
+}
+
+.btn-confirmar:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #d1d5db;
+}
+
+.btn-cancelar {
+    background-color: #ef4444;
+    color: white;
+}
+
+.btn-cancelar:hover {
+    background-color: #dc2626;
+}
+
+/* Alertas e mensagens */
+.alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 12px 0;
+}
+
+.alert-error {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+}
+
+.alert-success {
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+}
+
+/* Loading message */
+.loading-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px;
+    color: #64748b;
+}
+
+.loading-message i {
+    color: #3b82f6;
+    font-size: 1.2em;
+}
+
+/* Empty state */
+.empty-message {
+    text-align: center;
+    padding: 32px;
+    color: #64748b;
+}
+
+.empty-message i {
+    font-size: 2em;
+    margin-bottom: 12px;
+    color: #94a3b8;
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 0.85em;
+}
+
+/* Alerta de loading e informações */
+.alert {
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.95em;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert-info {
+    background: linear-gradient(to right, #eff6ff, #dbeafe);
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+}
+
+.alert i {
+    font-size: 1.3em;
+}
+
+/* Modal de cancelamento */
+.cancel-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.cancel-modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.cancel-modal h3 {
+    margin-top: 0;
+    color: #1e293b;
+    font-size: 1.4em;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.cancel-form {
+    margin-top: 24px;
+}
+
+.cancel-form textarea {
+    width: 100%;
+    height: 100px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 1em;
+    transition: all 0.2s ease;
+    background: #f8fafc;
+}
+
+.cancel-form textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    background: white;
+}
+
+.cancel-form-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
+    margin-top: 24px;
+}
+
+/* Estados de alerta */
+.alert-success {
+    background: linear-gradient(to right, #f0fdf4, #dcfce7);
+    border: 1px solid #bbf7d0;
+    color: #166534;
+}
+
+.alert-error {
+    background: linear-gradient(to right, #fef2f2, #fee2e2);
+    border: 1px solid #fecaca;
+    color: #991b1b;
+}
+
+/* Layout responsivo */
+@media (max-width: 768px) {
+    .retiradas-container {
+        grid-template-columns: 1fr;
+        padding: 16px;
+        gap: 20px;
+    }
+
+    .requisicao-header {
+        padding: 16px;
+    }
+
+    .requisicao-content {
+        padding: 20px;
+    }
+
+    .actions {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .requisicao-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2em;
+    }
+}
+
+/* Animações de estado */
+.requisicao-card.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.requisicao-card.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(to right, #3b82f6, #60a5fa);
+    animation: loading 1.5s ease-in-out infinite;
+}
+
+@keyframes loading {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Melhorias visuais adicionais */
+.retiradas-container:empty {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+    border-radius: 16px;
+    border: 2px dashed #e2e8f0;
+}
+
+.retiradas-container:empty::after {
+    content: 'Nenhuma retirada pendente';
+    color: #64748b;
+    font-size: 1.1em;
+    font-weight: 500;
+}
+
+/* Status badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.status-pending {
+    background: #fff7ed;
+    color: #9a3412;
+    border: 1px solid #fed7aa;
+}
+
+.status-approved {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.status-rejected {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
 }

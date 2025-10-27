@@ -1,12 +1,12 @@
     const sqlite3 = require('sqlite3').verbose();
     const path = require('path');
     const fs = require('fs');
-    const bcrypt = require('bcrypt'); // Você precisa instalar: npm install bcrypt
+    const bcrypt = require('bcrypt'); 
 
-    // Criar conexão com o banco de dados
+
     const dbPath = path.join(__dirname, 'estoque.db');
 
-    // Verificar se o diretório do banco de dados existe
+   
     const dbDir = path.dirname(dbPath);
     if (!fs.existsSync(dbDir)) {
         fs.mkdirSync(dbDir, { recursive: true });
@@ -186,7 +186,6 @@
                 nf TEXT,
                 quantidade INTEGER NOT NULL DEFAULT 0,
                 minimo INTEGER NOT NULL DEFAULT 0,
-                ideal INTEGER NOT NULL DEFAULT 0,
                 infos TEXT,
                 data_cadastro DATETIME DEFAULT CURRENT_TIMESTAMP
             )
@@ -265,8 +264,33 @@
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nome TEXT NOT NULL UNIQUE,
                 descricao TEXT,
+                aprovador_id INTEGER,
                 ativo BOOLEAN DEFAULT 1,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Tabela de retiradas pendentes de confirmação
+        db.run(`
+            CREATE TABLE IF NOT EXISTS retiradas_pendentes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                requisicao_id INTEGER NOT NULL,
+                item_id INTEGER NOT NULL,
+                item_nome TEXT NOT NULL,
+                quantidade INTEGER NOT NULL,
+                centro_custo TEXT,
+                projeto TEXT,
+                justificativa TEXT,
+                usuario_id INTEGER,
+                usuario_nome TEXT,
+                aprovador_id INTEGER,
+                aprovador_nome TEXT,
+                data_aprovacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status TEXT DEFAULT 'pendente_retirada',
+                observacoes TEXT,
+                FOREIGN KEY (requisicao_id) REFERENCES requisicoes(id),
+                FOREIGN KEY (item_id) REFERENCES itens(id),
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
             )
         `);
 
@@ -277,6 +301,18 @@
         db.run(`CREATE INDEX IF NOT EXISTS idx_movimentacoes_data ON movimentacoes(data)`);
         db.run(`CREATE INDEX IF NOT EXISTS idx_projetos_nome ON projetos(nome)`);
         db.run(`CREATE INDEX IF NOT EXISTS idx_centros_custo_nome ON centros_custo(nome)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_retiradas_pendentes_item_id ON retiradas_pendentes(item_id)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_retiradas_pendentes_status ON retiradas_pendentes(status)`);
+        
+        // Migração: Adicionar coluna aprovador_id à tabela centros_custo se não existir
+        db.all("PRAGMA table_info(centros_custo)", (err, columns) => {
+            if (!err) {
+                const colNames = columns.map(col => col.name);
+                if (!colNames.includes('aprovador_id')) {
+                    db.run("ALTER TABLE centros_custo ADD COLUMN aprovador_id INTEGER");
+                }
+            }
+        });
     });
 
     // Funções para usuários
@@ -370,13 +406,13 @@
     function inserirItem(item) {
         return new Promise((resolve, reject) => {
             const sql = `
-                INSERT INTO itens (nome, serie, descricao, origem, destino, valor, nf, quantidade, minimo, ideal, infos)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO itens (nome, serie, descricao, origem, destino, valor, nf, quantidade, minimo, infos)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             
             db.run(sql, [
                 item.nome, item.serie, item.descricao, item.origem, item.destino,
-                item.valor, item.nf, item.quantidade, item.minimo, item.ideal, item.infos
+                item.valor, item.nf, item.quantidade, item.minimo, item.infos
             ], function(err) {
                 if (err) {
                     reject(err);
@@ -842,12 +878,11 @@
     // Função para criar pacote de requisições
     function criarPacoteRequisicao(pacote) {
         return new Promise((resolve, reject) => {
-            const sql = `INSERT INTO pacotes_requisicao (userId, centroCusto, projeto, justificativa) 
-                        VALUES (?, ?, ?, ?)`;
+            const sql = `INSERT INTO pacotes_requisicao (userId, centroCusto, justificativa) 
+                        VALUES (?, ?, ?)`;
             db.run(sql, [
                 pacote.userId,
                 pacote.centroCusto,
-                pacote.projeto,
                 pacote.justificativa
             ], function(err) {
                 if (err) reject(err);
@@ -863,10 +898,13 @@
                 SELECT 
                     p.*,
                     u.name as usuario_nome,
+                    aprovador.name as aprovador_nome,
                     COUNT(r.id) as total_itens,
                     SUM(r.quantidade) as total_quantidade
                 FROM pacotes_requisicao p
                 JOIN usuarios u ON p.userId = u.id
+                LEFT JOIN centros_custo cc ON p.centroCusto = cc.nome
+                LEFT JOIN usuarios aprovador ON cc.aprovador_id = aprovador.id
                 LEFT JOIN requisicoes r ON p.id = r.pacoteId
                 WHERE p.status = 'pendente'
                 GROUP BY p.id
@@ -970,28 +1008,30 @@
                 
                 // Aprovar todas as requisições do pacote
                 for (const req of requisicoes) {
-                    await atualizarStatusRequisicao(req.id, 'aprovado');
-                    await descontarEstoque(req.itemId, req.quantidade);
+                    // Atualizar status da requisição para "aprovado_pendente_retirada"
+                    await atualizarStatusRequisicao(req.id, 'aprovado_pendente_retirada');
                     
-                    // Registrar movimentação para cada item aprovado
-                    await inserirMovimentacao({
-                        itemId: req.itemId,
-                        itemNome: req.item_nome,
-                        tipo: 'saida',
+                    // Criar retirada pendente em vez de debitar diretamente do estoque
+                    await criarRetiradaPendente({
+                        requisicao_id: req.id,
+                        item_id: req.itemId,
+                        item_nome: req.item_nome,
                         quantidade: req.quantidade,
-                        destino: pacote.centroCusto,
-                        descricao: `Requisição em pacote aprovada - Projeto: ${pacote.projeto} - ${pacote.justificativa}`,
+                        centro_custo: pacote.centroCusto,
+                        projeto: pacote.projeto,
+                        justificativa: pacote.justificativa,
                         usuario_id: pacote.userId,
                         usuario_nome: (solicitante && solicitante.name) || null,
                         aprovador_id: aprovador && aprovador.aprovador_id ? aprovador.aprovador_id : null,
-                        aprovador_nome: aprovador && aprovador.aprovador_nome ? aprovador.aprovador_nome : null
+                        aprovador_nome: aprovador && aprovador.aprovador_nome ? aprovador.aprovador_nome : null,
+                        observacoes: 'Aprovado - Aguardando confirmação de retirada'
                     });
                 }
                 
                 // Atualizar status e aprovador do pacote
                 await run(
                     'UPDATE pacotes_requisicao SET status = ?, data_aprovacao = datetime("now"), aprovador_id = ?, aprovador_nome = ? WHERE id = ?',
-                    ['aprovado', aprovador && aprovador.aprovador_id ? aprovador.aprovador_id : null, aprovador && aprovador.aprovador_nome ? aprovador.aprovador_nome : null, pacoteId]
+                    ['aprovado_pendente_retirada', aprovador && aprovador.aprovador_id ? aprovador.aprovador_id : null, aprovador && aprovador.aprovador_nome ? aprovador.aprovador_nome : null, pacoteId]
                 );
                 
                 await run('COMMIT');
@@ -1054,21 +1094,24 @@
                     if (req.quantidade > req.estoque_disponivel) {
                         throw new Error(`Item ${req.item_nome} não tem quantidade suficiente em estoque`);
                     }
-                    await atualizarStatusRequisicao(req.id, 'aprovado');
-                    await descontarEstoque(req.itemId, req.quantidade);
                     
-                    // Registrar movimentação para cada item aprovado
-                    await inserirMovimentacao({
-                        itemId: req.itemId,
-                        itemNome: req.item_nome,
-                        tipo: 'saida',
+                    // Atualizar status da requisição para "aprovado_pendente_retirada"
+                    await atualizarStatusRequisicao(req.id, 'aprovado_pendente_retirada');
+                    
+                    // Criar retirada pendente em vez de debitar diretamente do estoque
+                    await criarRetiradaPendente({
+                        requisicao_id: req.id,
+                        item_id: req.itemId,
+                        item_nome: req.item_nome,
                         quantidade: req.quantidade,
-                        destino: pacote.centroCusto,
-                        descricao: `Requisição em pacote aprovada - Projeto: ${pacote.projeto} - ${pacote.justificativa}`,
+                        centro_custo: pacote.centroCusto,
+                        projeto: pacote.projeto,
+                        justificativa: pacote.justificativa,
                         usuario_id: pacote.userId,
                         usuario_nome: (solicitante && solicitante.name) || null,
                         aprovador_id: aprovador && aprovador.aprovador_id ? aprovador.aprovador_id : null,
-                        aprovador_nome: aprovador && aprovador.aprovador_nome ? aprovador.aprovador_nome : null
+                        aprovador_nome: aprovador && aprovador.aprovador_nome ? aprovador.aprovador_nome : null,
+                        observacoes: 'Aprovado - Aguardando confirmação de retirada'
                     });
                 }
                 
@@ -1120,7 +1163,7 @@
             const sql = `
                 SELECT 
                     COUNT(*) as total_itens,
-                    SUM(CASE WHEN status = 'aprovado' THEN 1 ELSE 0 END) as itens_aprovados,
+                    SUM(CASE WHEN status = 'aprovado' OR status = 'aprovado_pendente_retirada' THEN 1 ELSE 0 END) as itens_aprovados,
                     SUM(CASE WHEN status = 'rejeitado' THEN 1 ELSE 0 END) as itens_rejeitados,
                     SUM(CASE WHEN status = 'pendente' THEN 1 ELSE 0 END) as itens_pendentes
                 FROM requisicoes 
@@ -1144,13 +1187,13 @@
                 // Todos os itens foram aprovados
                 await run(
                     'UPDATE pacotes_requisicao SET status = ?, data_aprovacao = datetime("now") WHERE id = ?',
-                    ['aprovado', pacoteId]
+                    ['aprovado_pendente_retirada', pacoteId]
                 );
             } else {
                 // Alguns itens aprovados e outros rejeitados - parcialmente aprovado
                 await run(
                     'UPDATE pacotes_requisicao SET status = ?, data_aprovacao = datetime("now") WHERE id = ?',
-                    ['parcialmente aprovado', pacoteId]
+                    ['parcialmente_aprovado_pendente_retirada', pacoteId]
                 );
             }
         }
@@ -1389,18 +1432,19 @@ function removerProjeto(id) {
 function criarCentroCusto(centroCusto) {
     return new Promise((resolve, reject) => {
         const sql = `
-            INSERT INTO centros_custo (nome, descricao)
-            VALUES (?, ?)
+            INSERT INTO centros_custo (nome, descricao, aprovador_id)
+            VALUES (?, ?, ?)
         `;
         
-        db.run(sql, [centroCusto.nome, centroCusto.descricao], function(err) {
+        db.run(sql, [centroCusto.nome, centroCusto.descricao, centroCusto.aprovador_id], function(err) {
             if (err) {
                 reject(err);
             } else {
                 resolve({
                     id: this.lastID,
                     nome: centroCusto.nome,
-                    descricao: centroCusto.descricao
+                    descricao: centroCusto.descricao,
+                    aprovador_id: centroCusto.aprovador_id
                 });
             }
         });
@@ -1409,9 +1453,16 @@ function criarCentroCusto(centroCusto) {
 
 function buscarCentrosCusto() {
     return new Promise((resolve, reject) => {
-        const sql = `SELECT * FROM centros_custo WHERE ativo = 1 ORDER BY nome`;
+        const sql = `
+            SELECT cc.*, u.name as aprovador_nome 
+            FROM centros_custo cc 
+            LEFT JOIN usuarios u ON cc.aprovador_id = u.id 
+            WHERE cc.ativo = 1 
+            ORDER BY cc.nome
+        `;
         
         db.all(sql, [], (err, rows) => {
+            
             if (err) {
                 reject(err);
             } else {
@@ -1425,11 +1476,11 @@ function atualizarCentroCusto(id, centroCusto) {
     return new Promise((resolve, reject) => {
         const sql = `
             UPDATE centros_custo 
-            SET nome = ?, descricao = ?, ativo = ?
+            SET nome = ?, descricao = ?, ativo = ?, aprovador_id = ?
             WHERE id = ?
         `;
         
-        db.run(sql, [centroCusto.nome, centroCusto.descricao, centroCusto.ativo, id], function(err) {
+        db.run(sql, [centroCusto.nome, centroCusto.descricao, centroCusto.ativo, centroCusto.aprovador_id, id], function(err) {
             if (err) {
                 reject(err);
             } else {
@@ -1573,30 +1624,31 @@ function aprovarItensPacoteComQuantidade(pacoteId, itensAprovados, aprovador) {
                     });
                     if (!reqData) continue;
                     
-                    // Atualizar status da requisição
+                    // Atualizar status da requisição para "aprovado_pendente_retirada"
                     promises.push(new Promise((res, rej) => {
                         db.run(
-                            `UPDATE requisicoes SET status = 'aprovado', observacoes = 'Aprovado parcialmente' WHERE id = ?`,
-                            [item.item_id],
+                            `UPDATE requisicoes SET status = 'aprovado_pendente_retirada', observacoes = 'Aprovado - Aguardando confirmação de retirada' WHERE id = ?`,
+                            [reqData.id],
                             function(err) { if (err) rej(err); else res(this.changes); }
                         );
                     }));
                     
-                    // Descontar do estoque
-                    promises.push(descontarEstoque(reqData.itemId, item.quantidade_aprovada));
-                    
-                    // Registrar movimentação
-                    promises.push(inserirMovimentacao({
-                        itemId: reqData.itemId,
-                        itemNome: reqData.item_nome,
-                        tipo: 'saida',
-                        quantidade: item.quantidade_aprovada,
-                        destino: pacote.centroCusto || 'Aprovado parcialmente',
-                        descricao: `Aprovado parcialmente do pacote ${pacoteId} - Quantidade: ${item.quantidade_aprovada}`,
-                        usuario_id: pacote.userId,
-                        usuario_nome: (solicitante && solicitante.name) || null,
-                        aprovador_id: aprovador && aprovador.aprovador_id ? aprovador.aprovador_id : null,
-                        aprovador_nome: aprovador && aprovador.aprovador_nome ? aprovador.aprovador_nome : null
+                    // Em vez de debitar do estoque, criar retirada pendente
+                    promises.push(new Promise((res, rej) => {
+                        criarRetiradaPendente({
+                            requisicao_id: reqData.id,
+                            item_id: reqData.itemId,
+                            item_nome: reqData.item_nome,
+                            quantidade: item.quantidade_aprovada,
+                            centro_custo: pacote.centroCusto,
+                            projeto: pacote.projeto,
+                            justificativa: pacote.justificativa,
+                            usuario_id: pacote.userId,
+                            usuario_nome: (solicitante && solicitante.name) || null,
+                            aprovador_id: aprovador && aprovador.aprovador_id ? aprovador.aprovador_id : null,
+                            aprovador_nome: aprovador && aprovador.aprovador_nome ? aprovador.aprovador_nome : null,
+                            observacoes: `Aprovado do pacote ${pacoteId} - Quantidade: ${item.quantidade_aprovada}`
+                        }).then(res).catch(rej);
                     }));
                 }
                 
@@ -1656,6 +1708,203 @@ function buscarTodosUsuarios() {
                 reject(err);
             } else {
                 resolve(rows);
+            }
+        });
+    });
+}
+
+// ===== FUNÇÕES DE RETIRADAS PENDENTES =====
+
+// Criar retirada pendente (em vez de debitar direto do estoque)
+function criarRetiradaPendente(dadosRetirada) {
+    return new Promise((resolve, reject) => {
+        const sql = `
+            INSERT INTO retiradas_pendentes 
+            (requisicao_id, item_id, item_nome, quantidade, centro_custo, projeto, 
+             justificativa, usuario_id, usuario_nome, aprovador_id, aprovador_nome, observacoes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        
+        db.run(sql, [
+            dadosRetirada.requisicao_id,
+            dadosRetirada.item_id,
+            dadosRetirada.item_nome,
+            dadosRetirada.quantidade,
+            dadosRetirada.centro_custo,
+            dadosRetirada.projeto,
+            dadosRetirada.justificativa,
+            dadosRetirada.usuario_id,
+            dadosRetirada.usuario_nome,
+            dadosRetirada.aprovador_id,
+            dadosRetirada.aprovador_nome,
+            dadosRetirada.observacoes || null
+        ], function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(this.lastID);
+            }
+        });
+    });
+}
+
+// Buscar todas as retiradas pendentes
+function buscarRetiradasPendentes() {
+    return new Promise((resolve, reject) => {
+        const sql = `
+            SELECT 
+                rp.*,
+                i.quantidade as estoque_atual,
+                i.minimo as estoque_minimo
+            FROM retiradas_pendentes rp
+            LEFT JOIN itens i ON rp.item_id = i.id
+            WHERE rp.status = 'pendente_retirada'
+            ORDER BY rp.data_aprovacao ASC
+        `;
+        
+        db.all(sql, [], (err, rows) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(rows);
+            }
+        });
+    });
+}
+
+// Buscar retirada por ID
+function buscarRetiradaPorId(id) {
+    return new Promise((resolve, reject) => {
+        const sql = `
+            SELECT 
+                rp.*,
+                i.quantidade as estoque_atual,
+                i.minimo as estoque_minimo
+            FROM retiradas_pendentes rp
+            LEFT JOIN itens i ON rp.item_id = i.id
+            WHERE rp.id = ?
+        `;
+        
+        db.get(sql, [id], (err, row) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(row);
+            }
+        });
+    });
+}
+
+// Confirmar retirada (debitar do estoque e criar movimentação)
+function confirmarRetirada(retiradaId, confirmadoPor) {
+    return new Promise((resolve, reject) => {
+        db.serialize(() => {
+            db.run('BEGIN TRANSACTION');
+            
+            try {
+                // Buscar dados da retirada
+                buscarRetiradaPorId(retiradaId).then(retirada => {
+                    if (!retirada) {
+                        db.run('ROLLBACK');
+                        reject(new Error('Retirada não encontrada'));
+                        return;
+                    }
+                    
+                    if (retirada.status !== 'pendente_retirada') {
+                        db.run('ROLLBACK');
+                        reject(new Error('Retirada já foi processada'));
+                        return;
+                    }
+                    
+                    // Verificar se há estoque suficiente
+                    if (retirada.estoque_atual < retirada.quantidade) {
+                        db.run('ROLLBACK');
+                        reject(new Error('Estoque insuficiente para confirmar a retirada'));
+                        return;
+                    }
+                    
+                    // Debitar do estoque
+                    const sqlUpdateEstoque = `UPDATE itens SET quantidade = quantidade - ? WHERE id = ?`;
+                    db.run(sqlUpdateEstoque, [retirada.quantidade, retirada.item_id], function(err) {
+                        if (err) {
+                            db.run('ROLLBACK');
+                            reject(err);
+                            return;
+                        }
+                        
+                        // Registrar movimentação
+                        const movimentacao = {
+                            itemId: retirada.item_id,
+                            itemNome: retirada.item_nome,
+                            tipo: 'saida',
+                            quantidade: retirada.quantidade,
+                            destino: retirada.centro_custo || 'Retirada confirmada',
+                            descricao: `Retirada confirmada - Req #${retirada.requisicao_id} - ${retirada.justificativa}`,
+                            usuario_id: retirada.usuario_id,
+                            usuario_nome: retirada.usuario_nome,
+                            aprovador_id: confirmadoPor.id,
+                            aprovador_nome: confirmadoPor.name
+                        };
+                        
+                        inserirMovimentacao(movimentacao).then(() => {
+                            // Atualizar status da retirada
+                            const sqlUpdateRetirada = `
+                                UPDATE retiradas_pendentes 
+                                SET status = 'retirada_confirmada', 
+                                    observacoes = COALESCE(observacoes, '') || 'Confirmado por: ' || ?
+                                WHERE id = ?
+                            `;
+                            db.run(sqlUpdateRetirada, [confirmadoPor.name, retiradaId], function(err) {
+                                if (err) {
+                                    db.run('ROLLBACK');
+                                    reject(err);
+                                } else {
+                                    db.run('COMMIT');
+                                    resolve({
+                                        success: true,
+                                        message: 'Retirada confirmada com sucesso',
+                                        retirada_id: retiradaId
+                                    });
+                                }
+                            });
+                        }).catch(err => {
+                            db.run('ROLLBACK');
+                            reject(err);
+                        });
+                    });
+                }).catch(err => {
+                    db.run('ROLLBACK');
+                    reject(err);
+                });
+            } catch (error) {
+                db.run('ROLLBACK');
+                reject(error);
+            }
+        });
+    });
+}
+
+// Cancelar retirada
+function cancelarRetirada(retiradaId, canceladoPor, motivo) {
+    return new Promise((resolve, reject) => {
+        const sql = `
+            UPDATE retiradas_pendentes 
+            SET status = 'retirada_cancelada',
+                observacoes = COALESCE(observacoes, '') || 'Cancelado por: ' || ? || ' - Motivo: ' || ?
+            WHERE id = ? AND status = 'pendente_retirada'
+        `;
+        
+        db.run(sql, [canceladoPor.name, motivo || 'Não informado', retiradaId], function(err) {
+            if (err) {
+                reject(err);
+            } else if (this.changes === 0) {
+                reject(new Error('Retirada não encontrada ou já foi processada'));
+            } else {
+                resolve({
+                    success: true,
+                    message: 'Retirada cancelada com sucesso',
+                    retirada_id: retiradaId
+                });
             }
         });
     });
@@ -1724,5 +1973,14 @@ module.exports = {
     
     // Funções de relatórios
     buscarMovimentacoesPorUsuario,
-    buscarTodosUsuarios
+    buscarTodosUsuarios,
+    
+    // Funções de retiradas pendentes
+    criarRetiradaPendente,
+    buscarRetiradasPendentes,
+    confirmarRetirada,
+    cancelarRetirada,
+    buscarRetiradaPorId
+
+    //funções obsoletas
 };

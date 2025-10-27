@@ -1,4 +1,4 @@
-/* ===== CSS VARIABLES ===== */
+
 :root {
     --primary-color: #1e40af;
     --primary-hover: #1e3a8a;
@@ -18,7 +18,7 @@
     --danger-color: #ef4444;
 }
 
-/* ===== RESET E BASE ===== */
+
 * {
     margin: 0;
     padding: 0;
@@ -35,7 +35,7 @@ body {
     overflow-x: hidden;
 }
 
-/* ===== SIDEBAR ===== */
+
 .sidebar {
     width: var(--sidebar-width);
     height: 100vh;
@@ -791,7 +791,7 @@ body {
     color: #991b1b;
 }
 
-.status-baixo {
+.status-critico {
     background: #fee2e2;
     color: #991b1b;
     padding: 4px 8px;
@@ -800,7 +800,7 @@ body {
     font-weight: 500;
 }
 
-.status-ideal {
+.status-normal {
     background: #d1fae5;
     color: #065f46;
     padding: 4px 8px;
@@ -1878,7 +1878,7 @@ body {
 }
 
 /* Estados de status (compatibilidade com tags usadas no app.js) */
-.status-entrada, .status-ideal {
+.status-entrada, .status-normal {
     background: #d1fae5;
     color: #065f46;
     padding: 4px 8px;
@@ -1887,7 +1887,7 @@ body {
     font-weight: 600;
 }
 
-.status-saida, .status-baixo {
+.status-saida, .status-critico {
     background: #fee2e2;
     color: #991b1b;
     padding: 4px 8px;
@@ -1929,3 +1929,89 @@ body {
 .status-rejeitado { background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 9999px; font-weight: 600; }
 .status-parcialmente-aprovado { background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 9999px; font-weight: 600; }
 .status-pendente { background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 9999px; font-weight: 600; }
+.status-aprovado-pendente-retirada { background: #fbbf24; color: #92400e; padding: 4px 8px; border-radius: 9999px; font-weight: 600; }
+.status-parcialmente-aprovado-pendente-retirada { background: #a78bfa; color: #3730a3; padding: 4px 8px; border-radius: 9999px; font-weight: 600; }
+
+/* Badges gerais */
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 12px;
+    text-align: center;
+    min-width: 20px;
+    height: 24px;
+    line-height: 16px;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.badge-info {
+    background-color: #17a2b8;
+    color: white;
+}
+
+/* Estilos para card de retiradas pendentes */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.card-actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.card-content p {
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+/* Alertas para retiradas pendentes */
+.alert-retiradas-pendentes {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alert-retiradas-pendentes i {
+    color: #856404;
+    font-size: 1.2em;
+}
+
+.alert-retiradas-pendentes .alert-content {
+    flex: 1;
+}
+
+.alert-retiradas-pendentes .alert-title {
+    font-weight: 600;
+    color: #856404;
+    margin-bottom: 5px;
+}
+
+.alert-retiradas-pendentes .alert-message {
+    color: #856404;
+    font-size: 0.9em;
+}

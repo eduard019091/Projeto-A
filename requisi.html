@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Requisições</title>
     <link rel="icon" type="image/png" href="andritzlogo2.png">
-    <link rel="stylesheet" href="main.css">
+    <link rel="stylesheet" href="main.css"> 
+    <link rel="stylesheet" href="requisi.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <!-- Sidebar -->
+ 
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="logo-container">
@@ -39,6 +40,12 @@
                     </a>
                 </li>
                 <li class="nav-item admin-only">
+                    <a href="#confirmarRetiradas" class="nav-link" onclick="showSection('confirmarRetiradas')">
+                        <i class="fas fa-box-open"></i>
+                        <span>Confirmar Retiradas</span>
+                    </a>
+                </li>
+                <li class="nav-item admin-only">
                     <a href="#configuracoes" class="nav-link" onclick="showSection('configuracoes')">
                         <i class="fas fa-cog"></i>
                         <span>Configurações</span>
@@ -53,10 +60,7 @@
             </ul>
         </nav>
     </div>
-
-    <!-- Main Content -->
     <div class="main-content" id="mainContent">
-        <!-- Top Header -->
         <header class="top-header">
             <div class="header-left">
              <button class="sidebar-toggle" id="sidebarToggle">
@@ -78,7 +82,7 @@
             </div>
         </header>
 
-        <!-- Seção Novo Pacote -->
+      
         <div id="novoPacote" class="content-section active">
             <div class="section-header">
                 <h2>Criar Nova Requisição</h2>
@@ -98,12 +102,7 @@
                                     <option value="">Selecione um centro de custo...</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label for="projeto">Projeto</label>
-                                <select id="projeto" required>
-                                    <option value="">Selecione um projeto...</option>
-                                </select>
-                            </div>
+
                             <div class="form-group full-width">
                                 <label for="justificativa">Justificativa</label>
                                 <textarea id="justificativa" rows="3" required></textarea>
@@ -157,7 +156,7 @@
             </div>
         </div>
 
-        <!-- Seção Meus Pacotes -->
+
         <div id="meusPacotes" class="content-section">
             <div class="section-header">
                 <h2>Minhas Requisições</h2>
@@ -177,6 +176,8 @@
                                 <option value="pendente">Pendentes</option>
                                 <option value="parcialmente aprovado">Parcialmente Aprovados</option>
                                 <option value="aprovado">Aprovados</option>
+                                <option value="aprovado_pendente_retirada">Aprovados - Pendente Retirada</option>
+                                <option value="parcialmente_aprovado_pendente_retirada">Parcialmente Aprovados - Pendente Retirada</option>
                                 <option value="rejeitado">Rejeitados</option>
                             </select>
                         </div>
@@ -216,75 +217,53 @@
                 <p>Gerencie requisições pendentes de aprovação</p>
             </div>
             <div class="requisicoes-container" id="cardsAprovarRequisicoes">
-                <!-- Os cards serão renderizados dinamicamente pelo JS -->
+            
             </div>
         </div>
 
-        <!-- Configurações de Pacotes (Admin) -->
+    
+        <div id="confirmarRetiradas" class="content-section">
+            <div class="section-header">
+                <h2>Confirmar Retiradas</h2>
+                <p>Confirme ou cancele retiradas aprovadas antes do débito no estoque</p>
+            </div>
+            <div class="content-card">
+                <div class="card-header">
+                    <h3>
+                        <i class="fas fa-box-open"></i>
+                        Retiradas Pendentes de Confirmação
+                    </h3>
+                    <button class="btn btn-secondary" onclick="carregarRetiradasPendentes()">
+                        <i class="fas fa-sync-alt"></i>
+                        Atualizar
+                    </button>
+                </div>
+                <div class="card-content">
+                    <div id="retiradasPendentesContainer" class="retiradas-container">
+                        <div class="loading-message">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            Carregando retiradas pendentes...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
         <div id="configuracoes" class="content-section">
             <div class="section-header">
                 <h2>Configurações de Requisições</h2>
-                <p>Gerencie projetos e centros de custo</p>
+                <p>Gerencie centros de custo</p>
             </div>
 
             <div class="content-card">
                 <div class="card-header">
                     <h3>Configurações</h3>
-                    <div class="header-actions">
-                        <button class="config-tab active" onclick="showConfigTab('projetos')">
-                            <i class="fas fa-project-diagram"></i>
-                            Projetos
-                        </button>
-                        <button class="config-tab" onclick="showConfigTab('centros-custo')">
-                            <i class="fas fa-building"></i>
-                            Centros de Custo
-                        </button>
-                    </div>
                 </div>
 
                 <div class="card-content">
-                    <!-- Seção de Projetos -->
-                    <div id="config-projetos" class="config-section active">
-                        <div class="config-form">
-                            <h4>Gerenciar Projetos</h4>
-                            <form id="projetoForm" class="modern-form">
-                                <div class="form-grid">
-                                    <div class="form-group">
-                                        <label for="projetoNome">Nome do Projeto</label>
-                                        <input type="text" id="projetoNome" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="projetoDescricao">Descrição</label>
-                                        <input type="text" id="projetoDescricao">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>&nbsp;</label>
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-plus"></i>
-                                            Adicionar Projeto
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-
-                        <div class="table-container">
-                            <table id="tabelaProjetos" class="modern-table">
-                                <thead>
-                                    <tr>
-                                        <th>Nome</th>
-                                        <th>Descrição</th>
-                                        <th>Status</th>
-                                        <th>Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Seção de Centros de Custo -->
-                    <div id="config-centros-custo" class="config-section">
+                
+                    <div id="config-centros-custo" class="config-section active">
                         <div class="config-form">
                             <h4>Gerenciar Centros de Custo</h4>
                             <form id="centroCustoForm" class="modern-form">
@@ -296,6 +275,12 @@
                                     <div class="form-group">
                                         <label for="centroCustoDescricao">Descrição</label>
                                         <input type="text" id="centroCustoDescricao">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="centroCustoAprovador">Aprovador</label>
+                                        <select id="centroCustoAprovador" required>
+                                            <option value="">Selecione um aprovador...</option>
+                                        </select>
                                     </div>
                                     <div class="form-group">
                                         <label>&nbsp;</label>
@@ -314,6 +299,7 @@
                                     <tr>
                                         <th>Nome</th>
                                         <th>Descrição</th>
+                                        <th>Aprovador</th>
                                         <th>Status</th>
                                         <th>Ações</th>
                                     </tr>
@@ -327,7 +313,7 @@
         </div>
     </div>
 
-    <!-- Indicador de loading -->
+ 
     <div id="loading" class="loading-overlay hidden">
         <div class="loading-content">
             <i class="fas fa-spinner fa-spin"></i>
@@ -335,7 +321,6 @@
         </div>
     </div>
 
-    <!-- Mensagem de acesso negado -->
     <div id="accessDenied" class="access-denied-overlay hidden">
         <div class="access-denied-content">
             <i class="fas fa-ban"></i>
@@ -350,9 +335,9 @@
 
     <script>
 
-        // Função para verificar se o usuário é admin
+        // verificar admin
         function isUserAdmin() {
-            const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+            const userData = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
             return userData.userType === 'admin';
         }
 
@@ -373,7 +358,7 @@
 
         // Função para carregar dados do usuário logado
         function carregarDadosUsuario() {
-            const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+            const userData = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
             
             if (!userData.id) {
                 document.getElementById('accessDenied').classList.remove('hidden');

@@ -1,117 +1,36 @@
-# Sistema de Estoque HBS - Versão Modernizada
+A aplicação está sendo enviada junto com o banco de dados de testes (estoque.db), já com dados fictícios cadastrados. Ao iniciar o sistema, todas essas informações são carregadas automaticamente, por conta do sqlite.
 
-## 🎨 Melhorias Implementadas
+Credenciais de acesso disponíveis:
 
-### ✨ Interface Moderna e Profissional
+Admin
+Gmail: 12345@gmail.com
+Senha: 12345@gmail.com
 
-O sistema foi completamente redesenhado com uma interface moderna e profissional, seguindo as melhores práticas de UX/UI:
+Usuário comum
+Gmail: 123@gmail.com
+Senha: 123@gmail.com
 
-#### 🎯 **Sidebar Retrátil**
-- **Navegação lateral** com design moderno e gradiente azul
-- **Retrátil** - pode ser recolhida para maximizar o espaço de trabalho
-- **Responsiva** - se adapta automaticamente em dispositivos móveis
-- **Submenus expansíveis** para organizar melhor as funcionalidades
-- **Busca integrada** para encontrar opções rapidamente
+Para cadastrar um novo usuário admin, é necessário inserir o seguinte código durante o cadastro:
+HBSDQK0101
 
-#### 📊 **Dashboard Interativo**
-- **Cards de métricas** com cores distintas para diferentes tipos de informação
-- **Gráficos visuais** mostrando status do estoque
-- **Tabela de itens críticos** para atenção imediata
-- **Atividade recente** com timeline visual
-- **Ações rápidas** para tarefas mais comuns
+Sobre o projeto
 
-#### 🎨 **Design System Consistente**
-- **Paleta de cores** profissional e acessível
-- **Tipografia moderna** com hierarquia clara
-- **Ícones FontAwesome** para melhor usabilidade
-- **Animações suaves** e transições elegantes
-- **Cards expansíveis** para organizar conteúdo
+A aplicação conta com 18 arquivos.
 
-### 🔧 **Funcionalidades Aprimoradas**
+Desenvolvida em JavaScript, tanto no front quanto no back-end (JS tornou um problema grande, após a metade do projeto).
 
-#### 📱 **Responsividade Total**
-- **Mobile-first** design que funciona perfeitamente em qualquer dispositivo
-- **Sidebar adaptativa** que se transforma em menu hambúrguer no mobile
-- **Grid responsivo** que se reorganiza automaticamente
-- **Touch-friendly** com botões e elementos adequados para toque
+Utiliza bibliotecas como Cloudflare e JSDelivr.
 
-#### ⚡ **Performance Otimizada**
-- **Carregamento lazy** de dados do dashboard
-- **Cache inteligente** para melhorar velocidade
-- **Animações CSS** em vez de JavaScript para melhor performance
-- **Código modular** e bem organizado
+Estilização com CSS puro e HTML5.
 
-#### 🎯 **Experiência do Usuário**
-- **Feedback visual** imediato para todas as ações
-- **Estados de loading** claros e informativos
-- **Mensagens de erro** amigáveis e úteis
-- **Navegação intuitiva** com breadcrumbs visuais
+Banco de dados em SQLite3, rodando localmente (não é necessário XAMPP ou similares).
 
-### 🚀 **Como Usar**
+O arquivo package-lock.json cresce conforme a aplicação é utilizada, devido à forma como o SQLite está integrado. Para visualizar o banco (estoque.db), é recomendado o uso de uma extensão como SQLite Viewer no VS Code.
 
-#### **1. Navegação Principal**
-- Use a **sidebar lateral** para navegar entre as seções
-- Clique no **ícone de menu** para recolher/expandir a sidebar
-- Use a **busca** para encontrar funcionalidades rapidamente
+Considerações
 
-#### **2. Dashboard**
-- **Cards de métricas** mostram informações em tempo real
-- **Gráficos visuais** ajudam a entender o status do estoque
-- **Ações rápidas** permitem acesso direto às funções mais usadas
+Esse projeto foi feito em processo de aprendizado. Algumas boas práticas foram adotadas de maneira tardia, o que pode ter gerado Overengineering no desenvolvimento da aplicação.
 
-#### **3. Seções Principais**
-- **Cadastro**: Formulário moderno para adicionar novos itens
-- **Estoque**: Tabela interativa com filtros e ações
-- **Retiradas**: Interface simplificada para movimentações
-- **Relatórios**: Visualizações detalhadas com exportação
-- **Sincronização**: Ferramentas para backup e restauração
+O sistema precisa de um ambiente real de hospedagem para rodar — seja via localhost ou plataformas como Onrender.
 
-### 🎨 **Paleta de Cores**
-
-```css
-/* Cores principais */
---primary-blue: #3b82f6;      /* Azul principal */
---primary-dark: #1e40af;      /* Azul escuro */
---success-green: #10b981;     /* Verde sucesso */
---warning-orange: #f59e0b;    /* Laranja aviso */
---danger-red: #ef4444;        /* Vermelho erro */
---neutral-gray: #64748b;      /* Cinza neutro */
-```
-
-### 📱 **Breakpoints Responsivos**
-
-```css
-/* Desktop: > 1024px */
-/* Tablet: 768px - 1024px */
-/* Mobile: < 768px */
-/* Small Mobile: < 480px */
-```
-
-### 🔧 **Tecnologias Utilizadas**
-
-- **HTML5** semântico e acessível
-- **CSS3** com Grid, Flexbox e variáveis customizadas
-- **JavaScript ES6+** com async/await
-- **FontAwesome 6** para ícones
-- **Design System** próprio e consistente
-
-### 🎯 **Próximas Melhorias**
-
-1. **Temas escuro/claro** para preferência do usuário
-2. **Notificações push** para alertas importantes
-3. **Gráficos interativos** com Chart.js ou D3.js
-4. **PWA** para instalação como app
-5. **Offline mode** para trabalho sem internet
-
----
-
-## 🚀 **Instalação e Uso**
-
-1. **Clone o repositório**
-2. **Instale as dependências**: `npm install`
-3. **Execute o servidor**: `npm start`
-4. **Acesse**: `http://localhost:3000`
-
----
-
-**Desenvolvido com ❤️ para uma gestão de estoque mais eficiente e profissional** 
+Absolumente qualquer dúvidas ou observações por favor chamar "Silva Eduardo" no Teams, agradecido desde já!! boa sorte!! 

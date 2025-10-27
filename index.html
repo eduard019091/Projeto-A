@@ -6,6 +6,7 @@
     <link rel="icon" type="image/png" href="andritzlogo2.png">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <link rel="stylesheet" href="main.css">
     <title>Sistema de Estoque HBS</title>
 </head>
@@ -39,12 +40,7 @@
                         <span>Estoque</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="#retirada" class="nav-link" onclick="showSection('retirada')">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Retiradas</span>
-                    </a>
-                </li>
+
                 <li class="nav-item has-submenu">
                     <a href="#relatorios" class="nav-link">
                         <i class="fas fa-chart-bar"></i>
@@ -133,21 +129,12 @@
                     </div>
                     <div class="metric-content">
                         <div class="metric-value" id="itensIdealCard">0</div>
-                        <div class="metric-label">Estoque Ideal</div>
-                        <div class="metric-subtitle">Situação Normal</div>
+                        <div class="metric-label">Estoque Normal</div>
+                        <div class="metric-subtitle">Acima do Mínimo</div>
                     </div>
                 </div>
 
-                <div class="metric-card red">
-                    <div class="metric-icon">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <div class="metric-content">
-                        <div class="metric-value" id="retiradasHojeCard">0</div>
-                        <div class="metric-label">Retiradas Hoje</div>
-                        <div class="metric-subtitle">Movimentação</div>
-                    </div>
-                </div>
+
             </div>
 
             <!-- Dashboard Content Grid -->
@@ -201,10 +188,7 @@
                                 <i class="fas fa-plus"></i>
                                 <span>Novo Item</span>
                             </button>
-                            <button class="action-btn" onclick="showSection('retirada')">
-                                <i class="fas fa-sign-out-alt"></i>
-                                <span>Retirar Item</span>
-                            </button>
+
                             <button class="action-btn" onclick="showSection('relatorio1')">
                                 <i class="fas fa-file-alt"></i>
                                 <span>Relatório</span>
@@ -277,10 +261,6 @@
                                 <label for="minimo">Quantidade Mínima</label>
                                 <input type="number" id="minimo" required min="0">
                             </div>
-                            <div class="form-group">
-                                <label for="ideal">Quantidade Ideal</label>
-                                <input type="number" id="ideal" required min="0">
-                            </div>
                             <div class="form-group full-width">
                                 <label for="infos">Informações Adicionais</label>
                                 <textarea id="infos" rows="3"></textarea>
@@ -319,9 +299,8 @@
                         </div>
                         <select id="filtroStatus" onchange="filtrarEstoque()" class="filter-select">
                             <option value="">Todos os Status</option>
-                            <option value="abaixo-minimo">Abaixo do Mínimo</option>
-                            <option value="abaixo-ideal">Abaixo do Ideal</option>
-                            <option value="ideal">Ideal</option>
+                            <option value="normal">Normal</option>
+                            <option value="critico">Crítico</option>
                         </select>
                     </div>
                 </div>
@@ -336,10 +315,7 @@
                             <div class="stat-number" id="itensAbaixoMinimo">0</div>
                             <div class="stat-label">Abaixo do Mínimo</div>
                         </div>
-                        <div class="stat-item info">
-                            <div class="stat-number" id="itensAbaixoIdeal">0</div>
-                            <div class="stat-label">Abaixo do Ideal</div>
-                        </div>
+
                     </div>
 
                     <div class="table-container">
@@ -350,7 +326,6 @@
                                     <th>Código</th>
                                     <th>Atual</th>
                                     <th>Mínimo</th>
-                                    <th>Ideal</th>
                                     <th>Status</th>
                                     <th>Ações</th>
                                 </tr>
@@ -362,51 +337,7 @@
             </div>
         </div>
 
-        <!-- Retirada Section -->
-        <div id="retirada" class="content-section">
-            <div class="section-header">
-                <h2>Retirada de Itens</h2>
-                <p>Registre saídas do estoque</p>
-            </div>
 
-            <div class="content-card">
-                <div class="card-header">
-                    <h3>Nova Retirada</h3>
-                </div>
-                
-                <div class="card-content">
-                    <form id="retiradaForm" class="modern-form">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="itemRetirada">Selecionar Item</label>
-                                <select id="itemRetirada" required>
-                                    <option value="">Selecione um item...</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="quantidadeRetirada">Quantidade</label>
-                                <input type="number" id="quantidadeRetirada" required min="1">
-                            </div>
-                            <div class="form-group full-width">
-                                <label for="destinoRetirada">Para onde foi</label>
-                                <input type="text" id="destinoRetirada" required placeholder="Ex: Setor X, Cliente Y, etc.">
-                            </div>
-                            <div class="form-group full-width">
-                                <label for="observacaoRetirada">Observações</label>
-                                <textarea id="observacaoRetirada" rows="3"></textarea>
-                            </div>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-danger">
-                                <i class="fas fa-sign-out-alt"></i>
-                                Realizar Retirada
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
 
         <!-- Relatório Estoque Section -->
         <div id="relatorio1" class="content-section">
@@ -594,10 +525,6 @@
                     <div class="form-group">
                         <label for="editarMinimo">Quantidade Mínima</label>
                         <input type="number" id="editarMinimo" required min="0">
-                    </div>
-                    <div class="form-group">
-                        <label for="editarIdeal">Quantidade Ideal</label>
-                        <input type="number" id="editarIdeal" required min="0">
                     </div>
                     <div class="form-group full-width">
                         <label for="editarInfos">Informações Adicionais</label>
